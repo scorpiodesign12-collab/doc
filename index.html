@@ -490,7 +490,7 @@ async function mk(D,d,fr){
  var page={size:{width:11906,height:16838},margin:{top:fr?851:1134,bottom:fr?(d.fk==='r21'?1247:1417):1134,left:Math.round(L*56.7),right:567,header:567,footer:284}};
  var sec={properties:{titlePage:true,page:page},children:ch};
  if(fr){var rectXml='<w:r><w:pict><v:rect style="position:absolute;margin-left:56.7pt;margin-top:14.2pt;width:524.4pt;height:812.5pt;z-index:-1;mso-position-horizontal-relative:page;mso-position-vertical-relative:page" filled="f" strokecolor="black" strokeweight="2pt"/></w:pict></w:r>';
-  var hd=function(){return new D.Header({children:[new D.Paragraph({spacing:{before:0,after:0,line:20},children:[D.ImportedXmlComponent.fromXmlString(rectXml)]})]})};
+  var hd=function(){return new D.Header({children:[new D.Paragraph({spacing:{before:0,after:0,line:20},children:[D.ImportedXmlComponent.fromXmlString(rectXml).root[0]]})]})};
   sec.headers={default:hd(),first:hd()};
   if(d.fk!=='plain')sec.footers={default:new D.Footer({children:stampTable(D,d,false)}),first:new D.Footer({children:stampTable(D,d,true)})};
   else page.margin.bottom=1134}
