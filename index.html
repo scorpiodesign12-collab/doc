@@ -129,6 +129,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;heigh
 input[type=range]::-moz-range-thumb{width:18px;height:18px;background:var(--blue);border:4px solid #fff;box-shadow:0 0 0 3px var(--blue);border-radius:50%;cursor:pointer}
 .rl{display:flex;justify-content:space-between;font-size:.8rem;color:var(--soft)}.rl b{color:var(--deep)}
 .guide{background:var(--tint);border:2px solid var(--line);padding:12px 14px;margin:8px 0;font-size:.9rem}.guide ol{margin:6px 0 10px;padding-left:20px}.guide li{margin:4px 0}
+#ov2,#ov3{position:fixed;inset:0;background:rgba(255,255,255,.97);display:flex;align-items:center;justify-content:center;padding:12px;z-index:55}#ov3{z-index:60;background:rgba(255,255,255,.6)}
+.edbox{overflow:auto;border:3px solid var(--line);background:#fff;padding:10px;max-width:100%;-webkit-overflow-scrolling:touch}.edbox .st{flex:none}.edbox .sc{background:#fff}.edbox .sc:hover{background:var(--tint)}
 </style>
 </head>
 <body>
@@ -233,12 +235,12 @@ function form(box,d){
  var zl=E('b',{text:d.fs+' пт',style:'color:var(--deep)'}),zr=E('input',{type:'range',min:10,max:18,step:1,value:d.fs,oninput:function(){d.fs=+zr.value;zl.textContent=d.fs+' пт';save();renderPreview()}});
  c.append(E('label',{class:'l',text:'Шрифт'}),fsg,E('label',{class:'l'},['Размер шрифта: ',zl]),zr,E('div',{class:'rl'},[E('span',{text:'10'}),E('span',{text:'14 — по ГОСТ'}),E('span',{text:'18'})]));
  c.append(toggle('Титульный лист',d.tp,function(v){d.tp=v;$('#tpbox').classList.toggle('hide',!v);later()}));
- c.append(E('label',{class:'l',text:'Рамка и основная надпись по ГОСТ'}),seg([['none','Без рамки'],['g104','ГОСТ 2.104-2006','Формы 1 и 2а, текстовые документы'],['r21','ГОСТ Р 21.1101-2013','Формы 3 и 5, проектная документация'],['plain','Только рамка','ГОСТ 2.301 / 2.303, А4, без штампа']],d.fk,function(v){d.fk=v;d.fr=v!=='none';save();editor()}));
+ c.append(E('label',{class:'l',text:'Рамка и основная надпись по ГОСТ'}),seg([['none','Без рамки'],['g104','ГОСТ 2.104-2006','Формы 2 и 2а, текстовые документы'],['r21','ГОСТ Р 21.1101-2013','Формы 3 и 5, проектная документация'],['plain','Только рамка','ГОСТ 2.301 / 2.303, А4, без штампа']],d.fk,function(v){d.fk=v;d.fr=v!=='none';save();editor()}));
  c.append(toggle('Хранение свыше 10 лет: левое поле 30 мм',d.lm===30,function(v){d.lm=v?30:20;later()}));
  var tp=E('div',{id:'tpbox',class:d.tp?'':'hide'});
  tp.append(field('Учебное заведение','org','Название университета / школы'),field('Дисциплина','subj'),E('div',{class:'two'},[field('Автор','author','Фамилия И. О.'),field('Группа / класс','group')]),field('Руководитель','teacher','Фамилия И. О.'),E('div',{class:'two'},[field('Город','city'),field('Год','year')]));
  var fr=E('div',{id:'frbox',class:d.fr?'':'hide'});
- fr.append(E('div',{class:'lab',text:'Основная надпись'}),field('Обозначение документа','code','Например: РЕФ.000000.001'),E('div',{class:'two'},[field('Н. контр.','nk'),field('Утв.','ut')]),E('div',{class:'hint',style:'font-size:.85rem;margin-top:8px',text:'Любую ячейку штампа можно вписать прямо в превью: нажмите на неё и печатайте. «Лист» и «Листов» считаются сами.'}));
+ fr.append(E('div',{class:'lab',text:'Основная надпись'}),E('button',{type:'button',class:'btn red',style:'margin-bottom:10px',text:'✎ Редактировать штамп',onclick:function(){stampEditor(true)}}),field('Обозначение документа','code','Например: РЕФ.000000.001'),E('div',{class:'two'},[field('Н. контр.','nk'),field('Утв.','ut')]),E('div',{class:'hint',style:'font-size:.85rem;margin-top:8px',text:'Нажмите на штамп в превью или на кнопку выше и впишите своё в любую ячейку. «Лист» и «Листов» считаются сами.'}));
  c.append(tp,fr);box.append(c);box.append(aiCard());
  var s=E('div',{class:'card'});s.append(E('div',{class:'lab',style:'margin:0 0 8px',text:'Поиск информации'}));
  var q=E('input',{type:'text',placeholder:'Что искать',value:d.title});s.append(q);
@@ -304,11 +306,11 @@ function flat(d){var out=[],n={t:0,f:0,i:0};
  return out}
 
 /* ---------- STAMP (ГОСТ 2.104) ---------- */
-function stampH(d,two){return d.fk==='plain'?0:two?(d.fk==='r21'?40:55):15}
+function stampH(d,two){return d.fk==='plain'?0:two?40:15}
 function stampCells(d,two){var r21=d.fk==='r21',c=[],X=r21?[0,10,20,30,45,60,70]:[0,7,17,40,55,65],
- H=r21?['Изм.','Кол.уч.','Лист','№ докум.','Подп.','Дата']:['Изм.','Лист','№ докум.','Подп.','Дата'],n=H.length,W=X[n],rows=stampH(d,two)/5,hr=two?(r21?3:4):2,
+ H=r21?['Изм.','Кол.уч.','Лист','№ докум.','Подп.','Дата']:['Изм.','Лист','№ докум.','Подп.','Дата'],n=H.length,W=X[n],rows=stampH(d,two)/5,hr=two?(r21?3:2):2,
  S=r21?[0,20,45,60,70]:[0,17,40,55,65],pf=stampH(d,two),
- lab=r21?{4:['Разраб.','author'],5:['Пров.','teacher'],6:['Н. контр.','nk'],7:['Утв.','ut']}:{5:['Разраб.','author'],6:['Пров.','teacher'],7:['Т. контр.',''],9:['Н. контр.','nk'],10:['Утв.','ut']};
+ lab=r21?{4:['Разраб.','author'],5:['Пров.','teacher'],6:['Н. контр.','nk'],7:['Утв.','ut']}:{3:['Разраб.','author'],4:['Пров.','teacher'],5:['Т. контр.',''],6:['Н. контр.','nk'],7:['Утв.','ut']};
  if(!rows)return c;
  for(var r=0;r<rows;r++){
   if(r===hr)for(var k=0;k<n;k++)c.push([X[k],r*5,X[k+1]-X[k],5,H[k]]);
@@ -316,21 +318,30 @@ function stampCells(d,two){var r21=d.fk==='r21',c=[],X=r21?[0,10,20,30,45,60,70]
   else for(var k2=0;k2<n;k2++)c.push([X[k2],r*5,X[k2+1]-X[k2],5,''])}
  if(two)c.push([W,0,185-W,15,d.code||'',1,0,'code'],[W,15,135-W,pf-15,d.title||'',1,0,'title'],[135,15,17,5,'Литера'],[152,15,16,5,'Лист'],[168,15,17,5,'Листов'],[135,20,17,5,'—'],[152,20,16,5,'@P'],[168,20,17,5,'@T'],[135,25,50,pf-25,d.org||'',1,0,'org']);
  else c.push([W,0,175-W,15,d.code||'',1,0,'code'],[175,0,10,5,'Лист'],[175,5,10,10,'@P']);
- c.forEach(function(x){var tx=String(x[4]||'');x[6]=d.fk+(two?'a':'b')+':'+x[0]+'_'+x[1];if(!x[7]&&tx.charAt(0)!=='@'&&d.st&&x[6] in d.st)x[4]=d.st[x[6]]});
+ c.forEach(function(x){var tx=String(x[4]||'');x[6]=d.fk+(two?'a':'b')+':'+x[0]+'_'+x[1];x[8]=[(x[0]+x[2]===W)||(two&&x[0]+x[2]===135)||(!two&&x[0]+x[2]===175),(two&&x[0]>=W&&x[1]+x[3]===15)||(x[0]<W&&x[1]+x[3]===(hr+1)*5)];if(!x[7]&&tx.charAt(0)!=='@'&&d.st&&x[6] in d.st)x[4]=d.st[x[6]]});
  return c}
-function stampDom(d,i,total){var two=i===0,H=stampH(d,two)*MM;if(!H)return E('div');
- var st=E('div',{class:'st',style:'left:76px;top:'+(1104-H)+'px;width:'+185*MM+'px;height:'+H+'px'});
+function stampDom(d,i,total,cb){var two=i===0,H=stampH(d,two)*MM;if(!H)return E('div');
+ var st=E('div',{class:'st',style:(cb?'position:relative;left:0;top:0;margin:0 auto;':'left:76px;top:'+(1104-H)+'px;')+'width:'+185*MM+'px;height:'+H+'px'});
+ if(!cb){st.style.cursor='pointer';st.onclick=function(){stampEditor(two)}}
  stampCells(d,two).forEach(function(c){var tx=String(c[4]||''),ed=tx.charAt(0)!=='@';
-  var sp=E('span',{text:tx.replace('@P',i+1).replace('@T',total)});
-  if(ed){sp.contentEditable='true';sp.spellcheck=false;sp.dataset.k=c[6];sp.title='Нажмите и впишите';
-   sp.oninput=function(){var v=sp.textContent;if(c[7])d[c[7]]=v;else d.st[c[6]]=v;save();
-    document.querySelectorAll('[data-k="'+c[6]+'"]').forEach(function(o){if(o!==sp)o.textContent=v})};
-   sp.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();sp.blur()}}}
-  st.append(E('div',{class:'sc'+(c[5]?' big':''),style:'left:'+c[0]*MM+'px;top:'+c[1]*MM+'px;width:'+c[2]*MM+'px;height:'+c[3]*MM+'px'},[sp]))});
+  var e=E('div',{class:'sc'+(c[5]?' big':''),style:'left:'+c[0]*MM+'px;top:'+c[1]*MM+'px;width:'+c[2]*MM+'px;height:'+c[3]*MM+'px'+(c[8][0]?';border-right-width:2px':'')+(c[8][1]?';border-bottom-width:2px':'')},[E('span',{text:tx.replace('@P',i+1).replace('@T',total)})]);
+  if(cb&&ed){e.style.cursor='pointer';e.onclick=function(ev){ev.stopPropagation();editCell(c,cb)}}
+  st.append(e)});
  return st}
+function editCell(c,cb){var d=cur(),ov=E('div',{id:'ov3'}),card=E('div',{class:'card',style:'max-width:420px;width:100%;margin:0'});
+ var inp=E('input',{type:'text',value:String(c[4]||''),style:'font-size:18px;margin:8px 0 12px'});
+ function ok(){var v=inp.value;if(c[7])d[c[7]]=v;else d.st[c[6]]=v;save();renderPreview();ov.remove();cb&&cb()}
+ inp.onkeydown=function(e){if(e.key==='Enter')ok()};
+ card.append(E('div',{class:'lab',style:'margin:0',text:'Ячейка штампа'}),inp,E('div',{class:'acts'},[E('button',{class:'btn red',onclick:ok,text:'Готово'}),E('button',{class:'btn',onclick:function(){ov.remove()},text:'Отмена'})]));
+ ov.append(card);document.body.append(ov);setTimeout(function(){inp.focus();inp.select()},50)}
+function stampEditor(two){var d=cur(),ov=E('div',{id:'ov2'}),card=E('div',{class:'card',style:'max-width:760px;width:100%;margin:0'}),box=E('div',{class:'edbox'}),tabs=E('div');
+ function draw(t){two=t;tabs.innerHTML='';tabs.append(seg([['1','Первый лист'],['0','Остальные листы']],two?'1':'0',function(v){draw(v==='1')}));
+  box.innerHTML='';box.append(stampDom(d,two?0:1,pageCount||1,function(){draw(two)}))}
+ card.append(E('div',{class:'lab',style:'margin:0 0 6px',text:'Основная надпись'}),E('div',{class:'hint',style:'font-size:.85rem;margin-bottom:6px',text:'Нажмите на ячейку и впишите своё. Таблицу можно листать пальцем.'}),tabs,box,E('button',{class:'btn red',style:'margin-top:12px;width:100%',onclick:function(){ov.remove();renderPreview()},text:'Готово'}));
+ ov.append(card);document.body.append(ov);draw(two)}
 
 /* ---------- PAGINATION / PREVIEW ---------- */
-function geo(d,i){if(d.fr)return{l:95,t:57,w:661,h:i===0?(d.fk==='r21'?877:d.fk==='plain'?971:820):971};var L=d.lm===30?113:76;return{l:L,t:76,w:PW-L-38,h:971}}
+function geo(d,i){if(d.fr)return{l:95,t:57,w:661,h:i===0?(d.fk==='plain'?971:877):971};var L=d.lm===30?113:76;return{l:L,t:76,w:PW-L-38,h:971}}
 function gs(g){return 'left:'+g.l+'px;top:'+g.t+'px;width:'+g.w+'px;height:'+g.h+'px'}
 function build(d){
  var meas=$('#meas');meas.innerHTML='';var pages=[],pc=null;
@@ -465,9 +476,9 @@ function stampTable(D,d,two){
  cells.forEach(function(c){var c0=xs.indexOf(c[0]),c1=xs.indexOf(c[0]+c[2]),r0=c[1]/5,r1=r0+c[3]/5;for(var rr=r0;rr<r1;rr++)for(var cc=c0;cc<c1;cc++)grid[rr][cc]=(rr===r0&&cc===c0)?{c:c,c1:c1,r1:r1}:0});
  var trs=grid.map(function(row,ri){var tcs=[];row.forEach(function(g,ci){if(!g)return;var c=g.c,w=0;for(var k=ci;k<g.c1;k++)w+=cw[k];
   var tx=String(c[4]||''),run;if(tx==='@P')run=new D.TextRun({children:[D.PageNumber.CURRENT],font:F,size:18,italics:true});else if(tx==='@T')run=new D.TextRun({children:[D.PageNumber.TOTAL_PAGES],font:F,size:18,italics:true});else run=new D.TextRun({text:tx,font:F,size:c[5]?24:18,italics:!c[5]});
-  tcs.push(new D.TableCell({columnSpan:g.c1-ci>1?g.c1-ci:undefined,rowSpan:g.r1-ri>1?g.r1-ri:undefined,width:{size:w,type:D.WidthType.DXA},verticalAlign:D.VerticalAlign.CENTER,margins:{top:0,bottom:0,left:40,right:40},children:[new D.Paragraph({alignment:D.AlignmentType.CENTER,spacing:{line:240},children:[run]})]}))});
+  tcs.push(new D.TableCell({borders:{right:BB(c[8]&&c[8][0]?16:6),bottom:BB(c[8]&&c[8][1]?16:6)},columnSpan:g.c1-ci>1?g.c1-ci:undefined,rowSpan:g.r1-ri>1?g.r1-ri:undefined,width:{size:w,type:D.WidthType.DXA},verticalAlign:D.VerticalAlign.CENTER,margins:{top:0,bottom:0,left:40,right:40},children:[new D.Paragraph({alignment:D.AlignmentType.CENTER,spacing:{line:240},children:[run]})]}))});
   return new D.TableRow({height:{value:284,rule:D.HeightRule.EXACT},children:tcs})});
- return [new D.Table({width:{size:cw.reduce(function(a,b){return a+b},0),type:D.WidthType.DXA},columnWidths:cw,layout:D.TableLayoutType.FIXED,indent:{size:-392,type:D.WidthType.DXA},borders:{top:BB(16),bottom:BB(16),left:BB(16),right:BB(16),insideHorizontal:BB(6),insideVertical:BB(6)},rows:trs}),new D.Paragraph({spacing:{before:0,after:0,line:20}})]}
+ return [new D.Table({width:{size:cw.reduce(function(a,b){return a+b},0),type:D.WidthType.DXA},columnWidths:cw,layout:D.TableLayoutType.FIXED,indent:{size:-284,type:D.WidthType.DXA},borders:{top:BB(16),bottom:BB(16),left:BB(16),right:BB(16),insideHorizontal:BB(6),insideVertical:BB(6)},rows:trs}),new D.Paragraph({spacing:{before:0,after:0,line:20}})]}
 async function mk(D,d,fr){
  var F=d.ff||'Times New Roman',Z=(d.fs||14)*2,A=D.AlignmentType,L=fr?25:(d.lm===30?30:20),tw=Math.round((210-L-10)*56.7);
  function R(t,o){o=o||{};return new D.TextRun({text:t,font:F,size:o.sz||Z,bold:!!o.b,italics:!!o.i,superScript:!!o.sup,subScript:!!o.sub})}
