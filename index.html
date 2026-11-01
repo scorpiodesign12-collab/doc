@@ -711,17 +711,22 @@ var PTH={
  bw:{n:'Чёрно-белый',a:'#111111',bg:'#FFFFFF',ink:'#111111',mu:'#808080'},
  orange:{n:'Оранжевый',a:'#F26A0F',bg:'#FFF9F3',ink:'#25160a',mu:'#9a7b60'}};
 var PF="Arial,'Helvetica Neue',Helvetica,'Liberation Sans',sans-serif",PWd=1920,PHt=1080,PIM={};
+function pfont(p){var F=FONTS.filter(function(f){return f[0]===p.ff})[0]||FONTS[1];return F[1]}
 function ppad(n){return n<10?'0'+n:''+n}
 function phx(c){return [1,3,5].map(function(i){return parseInt(c.substr(i,2),16)})}
 function pmix(a,b,t){var x=phx(a),y=phx(b);return '#'+x.map(function(v,i){var r=Math.round(v*t+y[i]*(1-t));return (r<16?'0':'')+r.toString(16)}).join('')}
 function pwrap(x,text,w){var out=[];String(text||'').split('\n').forEach(function(par){var words=par.split(/\s+/).filter(Boolean),line='';
- words.forEach(function(wd){var t=line?line+' '+wd:wd;if(!line||x.measureText(t).width<=w)line=t;else{out.push(line);line=wd}});if(line)out.push(line)});return out}
+ words.forEach(function(wd){var t=line?line+' '+wd:wd;if(x.measureText(t).width<=w){line=t;return}
+  if(line){out.push(line);line=''}
+  while(wd.length>1&&x.measureText(wd).width>w){var k=wd.length;while(k>1&&x.measureText(wd.slice(0,k)).width>w)k--;out.push(wd.slice(0,k));wd=wd.slice(k)}
+  line=wd});
+ if(line)out.push(line)});return out}
 function pcov(x,im,dx,dy,dw,dh){var r=Math.max(dw/im.width,dh/im.height),sw=dw/r,sh=dh/r;x.drawImage(im,(im.width-sw)/2,(im.height-sh)*.4,sw,sh,dx,dy,dw,dh)}
 function pload(src){return new Promise(function(res){if(!src)return res(null);var o=PIM[src];if(o&&o.c)return res(o.i);var i=new Image();i.onload=function(){PIM[src]={i:i,c:true};res(i)};i.onerror=function(){res(null)};i.src=src})}
 function pimg(src){var o=PIM[src];if(o&&o.c)return o.i;if(!o){PIM[src]={c:false};pload(src).then(function(i){if(i&&typeof prenderSoon==='function')prenderSoon()})}return null}
 /* геометрия и подгонка текста — общая для превью, PDF и PPTX */
 function pgeom(p,idx,x){
- var s=p.slides[idx],cover=s.k!=='content',has=!!s.img,g={};
+ PF=pfont(p);var s=p.slides[idx],cover=s.k!=='content',has=!!s.img,g={};
  if(cover){g.tx=110;g.tw=has?830:1500;if(has){g.ix=1050;g.iy=150;g.iw=740;g.ih=780}}
  else{var right=idx%2===1;if(has){g.iw=764;g.ih=780;g.iy=150;if(right){g.tx=96;g.tw=840;g.ix=1060}else{g.ix=96;g.tx=980;g.tw=840}}else{g.tx=96;g.tw=1380}}
  var title=s.k==='cover'?(p.title||'Название презентации'):s.k==='end'?(s.t||'Спасибо за внимание'):(s.t||'Заголовок слайда');
@@ -730,11 +735,11 @@ function pgeom(p,idx,x){
  if(i>=tfs.length)i=tfs.length-1;
  L.tfs=tfs[i];L.tl=tl;L.lh=Math.round(L.tfs*1.14);L.th=L.lh*tl.length;
  var bl=(s.b||[]).filter(function(t){return t&&t.trim()});
- if(cover){x.font='42px '+PF;L.sl=bl[0]?pwrap(x,bl[0],g.tw):[];L.slh=58;var bh=L.th+(L.sl.length?40+L.sl.length*L.slh:0);L.ty=Math.round((PHt-bh)/2)-20;L.sy=L.ty+L.th+40}
+ if(cover){x.font='42px '+PF;L.sub=bl[0]||'';L.sl=bl[0]?pwrap(x,bl[0],g.tw):[];L.slh=58;var bh=L.th+(L.sl.length?40+L.sl.length*L.slh:0);L.ty=Math.round((PHt-bh)/2)-20;L.sy=L.ty+L.th+40}
  else{L.ty=170;L.by=L.ty+L.th+30;L.y0=L.by+64;var av=965-L.y0,bs=[42,38,34,30,27,24],j,it,lh,gp;
   for(j=0;j<bs.length;j++){x.font=bs[j]+'px '+PF;it=bl.map(function(t){return pwrap(x,t,g.tw-56)});lh=Math.round(bs[j]*1.36);gp=Math.round(bs[j]*.75);
    var h=it.reduce(function(a,l){return a+l.length*lh},0)+gp*Math.max(0,it.length-1);if(h<=av)break}
-  if(j>=bs.length)j=bs.length-1;L.bfs=bs[j];L.it=it;L.blh=lh;L.gp=gp}
+  if(j>=bs.length)j=bs.length-1;L.bfs=bs[j];L.it=it;L.raw=bl;L.blh=lh;L.gp=gp}
  return{s:s,cover:cover,g:g,L:L,T:PTH[p.th]||PTH.blue}}
 function pdraw(x,p,idx,n){
  var G=pgeom(p,idx,x),s=G.s,g=G.g,L=G.L,T=G.T,sc=x.canvas.width/PWd,im=s.img?pimg(s.img):null,i;
@@ -770,7 +775,7 @@ function psave(){try{localStorage.setItem('gostpres',JSON.stringify(PS.list))}ca
 function pcur(){return PS.list.find(function(p){return p.id===PS.id})}
 function pLater(){clearTimeout(ptm);ptm=setTimeout(function(){psave();prender(true)},350)}
 function prenderSoon(){clearTimeout(prt);prt=setTimeout(function(){prender(true)},60)}
-function pnew(){var p={id:'p'+Date.now(),title:'',author:'',th:'blue',n:7,slides:[{k:'cover',t:'',b:[''],q:'',img:null},{k:'end',t:'Спасибо за внимание',b:['Вопросы?'],q:'',img:null}]};
+function pnew(){var p={id:'p'+Date.now(),title:'',author:'',th:'blue',ff:'Arial',n:7,slides:[{k:'cover',t:'',b:[''],q:'',img:null},{k:'end',t:'Спасибо за внимание',b:['Вопросы?'],q:'',img:null}]};
  PS.list.unshift(p);psave();loader('Создаю презентацию…','Готовлю шаблон и цвета',1400).then(function(){popen(p.id)})}
 function popen(id){PS.id=id;PS.i=0;PS.tab='e';pEditor()}
 function pExit(){PS.id=null;home()}
@@ -824,10 +829,10 @@ async function pAuto(p){
  pList();prender(true)}
 
 /* ---------- ИИ: текст презентации ---------- */
-async function pGen(){
+async function pGen(force){
  var p=pcur();if(PS.busy)return;
  if(!(p.title||'').trim()){toast('Сначала напишите тему презентации');var t=$('#pti');if(t)t.focus();return}
- if(p.slides.some(function(s){return s.k==='content'&&(s.t||s.b.join('').trim())})&&!confirm('Заменить текущие слайды новыми?'))return;
+ if(p.slides.some(function(s){return s.k==='content'&&(s.t||s.b.join('').trim())})&&!force&&!confirm('Заменить текущие слайды новыми?'))return;
  PS.busy=true;var rm=showLd('Пишу презентацию…','Структура и тексты слайдов'),o=null;
  try{
   var t=await ask('Составь презентацию на тему «'+p.title+'». Нужно ровно '+p.n+' содержательных слайдов (без титульного и финального). Русский язык, простой понятный стиль. Ответь ТОЛЬКО JSON без markdown и пояснений: {"sub":"подзаголовок титульного слайда до 8 слов","cq":"поисковый запрос для картинки на титульный слайд, 2-3 слова по-английски","slides":[{"t":"короткий заголовок до 6 слов","b":["пункт до 14 слов","пункт","пункт"],"q":"поисковый запрос для фото, 2-3 слова по-английски, конкретный предмет или место"}]}. В каждом слайде 3 или 4 пункта. Не выдумывай точные цифры и цитаты.');
@@ -841,6 +846,22 @@ async function pGen(){
  }catch(e){o=null;toast('ИИ не ответил: '+((e&&e.message)||'попробуйте ещё раз'))}
  finally{rm();PS.busy=false}
  if(o){PS.i=0;pList();prender(true);await pAuto(p)}}
+
+/* ---------- ИИ-помощник презентации ---------- */
+async function pAI(ta,btn){
+ var p=pcur();if(PS.busy)return;if(!ta.value.trim()){toast('Напишите, что нужно сделать');ta.focus();return}
+ btn.disabled=true;var o=null,rm=showLd('Понимаю задачу…','Заполняю тему, автора и число слайдов');
+ try{
+  var t=await ask('Ты помощник для создания презентации. Текущие данные: '+JSON.stringify({title:p.title,author:p.author,n:p.n,color:p.th,font:p.ff})+'. Просьба пользователя: '+ta.value+'. Ответь ТОЛЬКО JSON-объектом с ключами: title (тема презентации), author (имя и фамилия автора, если они указаны), n (число содержательных слайдов от 3 до 15), color (одно из: red, green, blue, bw, orange — только если просили цвет), font (одно из: Times New Roman, Arial, Calibri, Cambria, Georgia — только если просили шрифт). Без пояснений и без markdown.');
+  o=JSON.parse(t.replace(/```json|```/g,'').trim().replace(/^[^{]*/,'').replace(/[^}]*$/,''));
+  if(o.title)p.title=String(o.title);if(o.author!=null&&String(o.author).trim())p.author=String(o.author);
+  if(+o.n)p.n=Math.max(3,Math.min(15,Math.round(+o.n)));
+  if(o.color&&PTH[o.color])p.th=o.color;if(o.font&&FONTS.some(function(f){return f[0]===o.font}))p.ff=o.font;
+  if(!(p.title||'').trim())throw new Error('не понял тему');
+  psave()
+ }catch(e){o=null;toast('ИИ не понял задачу: '+((e&&e.message)||'попробуйте переформулировать'))}
+ finally{rm();btn.disabled=false}
+ if(o){pEditor();await pGen(true)}}
 
 /* ---------- редактор ---------- */
 function pTab(t){PS.tab=t;var wide=matchMedia('(min-width:1000px)').matches;
@@ -866,7 +887,14 @@ function pEditor(){
  c2.append(E('div',{class:'lab',style:'margin:0 0 10px',text:'Цвет оформления'}));
  Object.keys(PTH).forEach(function(k){var T=PTH[k];sw.append(E('button',{type:'button',class:'swb'+(p.th===k?' on':''),'data-k':k,onclick:function(){p.th=k;psave();[].forEach.call(sw.children,function(b){b.classList.toggle('on',b.dataset.k===k)});prender(true)}},[E('i',{style:'background:'+T.a}),T.n]))});
  c2.append(sw);
- left.append(c1,c2,E('div',{class:'lab',text:'Слайды'}),E('div',{id:'plist'}));
+ var c3=E('div',{class:'card'}),fr=E('div',{class:'seg'});
+ c3.append(E('div',{class:'lab',style:'margin:0 0 6px',text:'Шрифт'}));
+ FONTS.forEach(function(F){fr.append(E('button',{type:'button',class:'opt'+((p.ff||'Arial')===F[0]?' on':''),'data-f':F[0],onclick:function(){p.ff=F[0];psave();[].forEach.call(fr.children,function(b){b.classList.toggle('on',b.dataset.f===F[0])});prender(true)}},[E('b',{text:F[0],style:'font-family:'+F[1]}),E('span',{text:F[2]})]))});
+ c3.append(fr);
+ var c0=E('div',{class:'card'}),at=E('textarea',{style:'min-height:90px',placeholder:'Скажите ИИ, что сделать. Например: Тема «Всё о бабочках», 8 слайдов, автор Иван Петров, зелёный цвет'});
+ c0.append(E('div',{class:'lab',style:'margin:0 0 8px',text:'ИИ-помощник'}),E('div',{class:'hint',style:'font-size:.85rem;margin-bottom:8px',text:'Опишите тему, число слайдов и имя автора — ИИ сам напишет текст, подберёт фото и создаст все слайды.'}),at);
+ var ab=E('button',{class:'btn red',style:'margin-top:8px;width:100%',text:'Выполнить',onclick:function(){pAI(at,ab)}});c0.append(ab);
+ left.append(c0,c1,c2,c3,E('div',{class:'lab',text:'Слайды'}),E('div',{id:'plist'}));
  /* просмотр */
  var cv=E('canvas',{id:'pcv',width:1920,height:1080});
  cv.onclick=function(e){var r=cv.getBoundingClientRect();pGo(e.clientX-r.left>r.width/2?1:-1)};
@@ -950,13 +978,13 @@ async function pPptx(p,fname){
    var G=pgeom(p,i,mx),s=G.s,g=G.g,L=G.L,T=G.T,sl=pp.addSlide(),im=s.img?await pload(s.img):null;
    var rect=function(x,y,w,h,col){sl.addShape(pp.ShapeType.rect,{x:R(x),y:R(y),w:R(w),h:R(h),fill:{color:c6(col)},line:{type:'none'}})};
    var circ=function(cx,cy,r,col){sl.addShape(pp.ShapeType.ellipse,{x:R(cx-r),y:R(cy-r),w:R(2*r),h:R(2*r),fill:{color:c6(col)},line:{type:'none'}})};
-   var txt=function(t,x,y,w,h,fs,col,o){sl.addText(t,Object.assign({x:R(x),y:R(y),w:R(w),h:R(h),fontFace:'Arial',fontSize:fs/2,color:c6(col),margin:0,valign:'top',wrap:true,fit:'none'},o||{}))};
+   var txt=function(t,x,y,w,h,fs,col,o){sl.addText(t,Object.assign({x:R(x),y:R(y),w:R(w),h:R(h),fontFace:(p.ff||'Arial'),fontSize:fs/2,color:c6(col),margin:0,valign:'top',wrap:true,fit:'none'},o||{}))};
    if(G.cover){
     sl.background={color:c6(T.a)};circ(260,1040,460,pmix('#ffffff',T.a,.07));circ(1560,60,320,pmix('#ffffff',T.a,.07));
     if(im){rect(g.ix+26,g.iy+26,g.iw,g.ih,pmix('#ffffff',T.a,.22));sl.addImage({data:pCrop(im,g.iw,g.ih),x:R(g.ix),y:R(g.iy),w:R(g.iw),h:R(g.ih)});if(s.cr)txt('Фото: '+s.cr,g.ix,972,g.iw,28,18,pmix('#ffffff',T.a,.7))}
     rect(110,120,80,8,pmix('#ffffff',T.a,.9));txt(s.k==='cover'?'ПРЕЗЕНТАЦИЯ':'ЗАВЕРШЕНИЕ',210,104,700,34,24,pmix('#ffffff',T.a,.75),{bold:true});
     txt(L.title,g.tx,L.ty,g.tw+30,L.th+10,L.tfs,'#ffffff',{bold:true,lineSpacing:L.lh/2});
-    if(L.sl.length)txt(L.sl.join(' '),g.tx,L.sy,g.tw+30,L.sl.length*L.slh+10,42,pmix('#ffffff',T.a,.88),{lineSpacing:L.slh/2});
+    if(L.sl.length)txt(L.sub,g.tx,L.sy,g.tw+30,L.sl.length*L.slh+10,42,pmix('#ffffff',T.a,.88),{lineSpacing:L.slh/2});
     if(p.author){rect(110,924,60,5,'#ffffff');txt(p.author,110,944,900,44,30,pmix('#ffffff',T.a,.92),{bold:true})}
    }else{
     sl.background={color:c6(T.bg)};rect(0,0,18,PHt,T.a);
@@ -965,7 +993,7 @@ async function pPptx(p,fname){
     if(im){rect(g.ix+24,g.iy+24,g.iw,g.ih,T.a);sl.addImage({data:pCrop(im,g.iw,g.ih),x:R(g.ix),y:R(g.iy),w:R(g.iw),h:R(g.ih)});if(s.cr)txt('Фото: '+s.cr,g.ix,972,g.iw,28,18,T.mu)}
     txt(L.title,g.tx,L.ty,g.tw+30,L.th+10,L.tfs,T.ink,{bold:true,lineSpacing:L.lh/2});rect(g.tx,L.by,120,10,T.a);
     var y=L.y0,mk=Math.round(L.bfs*.38);
-    L.it.forEach(function(lines){var hh=lines.length*L.blh;rect(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);txt(lines.join(' '),g.tx+56,y,g.tw-26,hh+6,L.bfs,T.ink,{lineSpacing:L.blh/2});y+=hh+L.gp})
+    L.it.forEach(function(lines,bi){var hh=lines.length*L.blh;rect(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);txt(L.raw[bi],g.tx+56,y,g.tw-26,hh+6,L.bfs,T.ink,{lineSpacing:L.blh/2});y+=hh+L.gp})
    }}
   var blob=await pp.write({outputType:'blob'});
   await saveBlob(blob,pName(p,fname)+'.pptx')
