@@ -148,6 +148,27 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;background:var(--blue
 .sgl{flex:1;max-width:250px;min-width:110px;height:48px;border-bottom:1px solid #000;display:flex;align-items:flex-end;justify-content:center}
 .sgl img{max-height:46px;max-width:100%;object-fit:contain;display:block;margin-bottom:-1px}.sgn{flex:none}
 .litb{font-size:.85rem;color:var(--soft);margin-top:6px}
+/* ---------- презентации ---------- */
+.nrow{display:flex;gap:8px}.nrow .btn{min-width:48px}
+.sw{display:flex;gap:10px;flex-wrap:wrap}
+.swb{width:84px;border:3px solid var(--line);background:#fff;padding:5px;cursor:pointer;font:700 .72rem Arial,sans-serif;color:var(--soft);text-align:center;transition:border-color .15s}
+.swb i{display:block;height:34px;margin-bottom:5px}.swb:hover{border-color:var(--light)}.swb.on{border-color:var(--ink);color:var(--ink)}
+.pslide .hd2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;color:var(--deep)}
+.pim{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}.pim img{width:84px;height:56px;object-fit:cover;border:2px solid var(--line)}
+#pfs canvas{width:100%;height:auto;display:block;border:3px solid var(--line);background:#fff;cursor:pointer}
+#pfs:fullscreen{background:#000;display:flex;align-items:center;justify-content:center}
+#pfs:fullscreen canvas{width:100vw;height:100vh;object-fit:contain;border:0}
+#pfs:-webkit-full-screen{background:#000;display:flex;align-items:center;justify-content:center}
+#pfs:-webkit-full-screen canvas{width:100vw;height:100vh;object-fit:contain;border:0}
+.pnav{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap}.pcn{flex:1;text-align:center;font-weight:700;color:var(--deep);min-width:110px}
+.pth{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;position:relative}
+.pth canvas{width:132px;height:auto;flex:none;border:3px solid var(--line);cursor:pointer;background:#fff}.pth canvas.on{border-color:var(--blue)}
+#ovp{position:fixed;inset:0;z-index:58;background:rgba(28,77,180,.28);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overflow:auto;-webkit-overflow-scrolling:touch;padding:16px}
+#ovp .in{max-width:820px;margin:0 auto;background:#fff;border:3px solid var(--line);padding:18px;box-shadow:0 12px 40px rgba(28,77,180,.28)}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.pg button{border:3px solid var(--line);padding:0;background:#eef2fb;cursor:pointer;aspect-ratio:4/3;overflow:hidden;transition:border-color .15s}.pg button:hover{border-color:var(--blue)}
+.pg img{width:100%;height:100%;object-fit:cover;display:block}
+@media(min-width:1000px){.pbar{display:none}}
 </style>
 </head>
 <body>
@@ -189,7 +210,7 @@ loader._mk=function(ov,t,sub){
  ov.querySelector('h3').textContent=t;ov.querySelector('p').textContent=sub||''};
 
 /* ---------- HOME ---------- */
-function home(){
+function home0(){
  S.id=null;var a=$('#app');a.innerHTML='';
  a.append(E('header',{class:'top'},[brand()]));
  var h2=E('h2',{class:'t',text:'Документы'});h2.insertAdjacentHTML('beforeend','<svg viewBox="0 0 84 12" preserveAspectRatio="none"><path d="M2 6 Q 12 0 22 6 T 42 6 T 62 6 T 82 6"/></svg>');a.append(h2);
@@ -200,7 +221,7 @@ function home(){
  if(S.docs.length){a.append(E('div',{class:'lab',text:'Сохранено на этом устройстве'}));var g=E('div',{class:'grid'});
   S.docs.forEach(function(d){g.append(E('div',{class:'doc',onclick:function(){open_(d.id)}},[E('div',{},[E('div',{style:'font-weight:700',text:d.title||'Без названия'}),E('small',{text:TYPES[d.type].n+' · '+d.pages+' стр.'})]),E('button',{class:'btn sm',onclick:function(ev){ev.stopPropagation();if(confirm('Удалить документ?')){S.docs=S.docs.filter(function(x){return x!==d});save();home()}},text:'✕'})]))});a.append(g)}
 }
-function picker(){
+function picker0(){
  var a=$('#app');a.innerHTML='';
  a.append(E('header',{class:'top'},[brand(),E('button',{class:'btn sm',onclick:home,text:'← Назад'})]));
  a.append(E('div',{class:'lab',text:'Что оформляем?'}));var g=E('div',{class:'grid'});
@@ -682,6 +703,283 @@ async function exportDocx(d,fname){
  if(!blob){toast('Не удалось создать файл');return}
  await saveBlob(blob,docName(d,fname)+'.docx')
 }
+/* ================= ПРЕЗЕНТАЦИИ: ядро (темы, макет, рисование) ================= */
+var PTH={
+ red:{n:'Красный',a:'#D62839',bg:'#FFF8F7',ink:'#1b1214',mu:'#8b6f73'},
+ green:{n:'Зелёный',a:'#15803D',bg:'#F5FBF7',ink:'#0f211a',mu:'#6b8577'},
+ blue:{n:'Синий',a:'#2F6DE0',bg:'#F5F8FF',ink:'#0f1a33',mu:'#6c7ea6'},
+ bw:{n:'Чёрно-белый',a:'#111111',bg:'#FFFFFF',ink:'#111111',mu:'#808080'},
+ orange:{n:'Оранжевый',a:'#F26A0F',bg:'#FFF9F3',ink:'#25160a',mu:'#9a7b60'}};
+var PF="Arial,'Helvetica Neue',Helvetica,'Liberation Sans',sans-serif",PWd=1920,PHt=1080,PIM={};
+function ppad(n){return n<10?'0'+n:''+n}
+function phx(c){return [1,3,5].map(function(i){return parseInt(c.substr(i,2),16)})}
+function pmix(a,b,t){var x=phx(a),y=phx(b);return '#'+x.map(function(v,i){var r=Math.round(v*t+y[i]*(1-t));return (r<16?'0':'')+r.toString(16)}).join('')}
+function pwrap(x,text,w){var out=[];String(text||'').split('\n').forEach(function(par){var words=par.split(/\s+/).filter(Boolean),line='';
+ words.forEach(function(wd){var t=line?line+' '+wd:wd;if(!line||x.measureText(t).width<=w)line=t;else{out.push(line);line=wd}});if(line)out.push(line)});return out}
+function pcov(x,im,dx,dy,dw,dh){var r=Math.max(dw/im.width,dh/im.height),sw=dw/r,sh=dh/r;x.drawImage(im,(im.width-sw)/2,(im.height-sh)*.4,sw,sh,dx,dy,dw,dh)}
+function pload(src){return new Promise(function(res){if(!src)return res(null);var o=PIM[src];if(o&&o.c)return res(o.i);var i=new Image();i.onload=function(){PIM[src]={i:i,c:true};res(i)};i.onerror=function(){res(null)};i.src=src})}
+function pimg(src){var o=PIM[src];if(o&&o.c)return o.i;if(!o){PIM[src]={c:false};pload(src).then(function(i){if(i&&typeof prenderSoon==='function')prenderSoon()})}return null}
+/* геометрия и подгонка текста — общая для превью, PDF и PPTX */
+function pgeom(p,idx,x){
+ var s=p.slides[idx],cover=s.k!=='content',has=!!s.img,g={};
+ if(cover){g.tx=110;g.tw=has?830:1500;if(has){g.ix=1050;g.iy=150;g.iw=740;g.ih=780}}
+ else{var right=idx%2===1;if(has){g.iw=764;g.ih=780;g.iy=150;if(right){g.tx=96;g.tw=840;g.ix=1060}else{g.ix=96;g.tx=980;g.tw=840}}else{g.tx=96;g.tw=1380}}
+ var title=s.k==='cover'?(p.title||'Название презентации'):s.k==='end'?(s.t||'Спасибо за внимание'):(s.t||'Заголовок слайда');
+ var L={title:title},tfs=cover?[104,92,80,68,56]:[70,62,54,46],i,tl;
+ for(i=0;i<tfs.length;i++){x.font='bold '+tfs[i]+'px '+PF;tl=pwrap(x,title,g.tw);if(tl.length<=(cover?3:2))break}
+ if(i>=tfs.length)i=tfs.length-1;
+ L.tfs=tfs[i];L.tl=tl;L.lh=Math.round(L.tfs*1.14);L.th=L.lh*tl.length;
+ var bl=(s.b||[]).filter(function(t){return t&&t.trim()});
+ if(cover){x.font='42px '+PF;L.sl=bl[0]?pwrap(x,bl[0],g.tw):[];L.slh=58;var bh=L.th+(L.sl.length?40+L.sl.length*L.slh:0);L.ty=Math.round((PHt-bh)/2)-20;L.sy=L.ty+L.th+40}
+ else{L.ty=170;L.by=L.ty+L.th+30;L.y0=L.by+64;var av=965-L.y0,bs=[42,38,34,30,27,24],j,it,lh,gp;
+  for(j=0;j<bs.length;j++){x.font=bs[j]+'px '+PF;it=bl.map(function(t){return pwrap(x,t,g.tw-56)});lh=Math.round(bs[j]*1.36);gp=Math.round(bs[j]*.75);
+   var h=it.reduce(function(a,l){return a+l.length*lh},0)+gp*Math.max(0,it.length-1);if(h<=av)break}
+  if(j>=bs.length)j=bs.length-1;L.bfs=bs[j];L.it=it;L.blh=lh;L.gp=gp}
+ return{s:s,cover:cover,g:g,L:L,T:PTH[p.th]||PTH.blue}}
+function pdraw(x,p,idx,n){
+ var G=pgeom(p,idx,x),s=G.s,g=G.g,L=G.L,T=G.T,sc=x.canvas.width/PWd,im=s.img?pimg(s.img):null,i;
+ x.setTransform(sc,0,0,sc,0,0);x.textBaseline='top';x.textAlign='left';
+ function R(a,b,w,h,c){x.fillStyle=c;x.fillRect(a,b,w,h)}
+ function C(cx,cy,r,c){x.fillStyle=c;x.beginPath();x.arc(cx,cy,r,0,7);x.fill()}
+ function pic(fc){if(fc)R(g.ix+(G.cover?26:24),g.iy+(G.cover?26:24),g.iw,g.ih,fc);if(im)pcov(x,im,g.ix,g.iy,g.iw,g.ih);else R(g.ix,g.iy,g.iw,g.ih,pmix(T.a,T.bg,.15))}
+ function cr(c){if(s.img&&s.cr){x.font='18px '+PF;x.fillStyle=c;x.fillText('Фото: '+s.cr,g.ix,972)}}
+ if(G.cover){
+  R(0,0,PWd,PHt,T.a);C(260,1040,460,pmix('#ffffff',T.a,.07));C(1560,60,320,pmix('#ffffff',T.a,.07));
+  if(s.img){pic(pmix('#ffffff',T.a,.22));cr(pmix('#ffffff',T.a,.7))}
+  R(110,120,80,8,pmix('#ffffff',T.a,.9));x.font='bold 24px '+PF;x.fillStyle=pmix('#ffffff',T.a,.75);x.fillText(s.k==='cover'?'ПРЕЗЕНТАЦИЯ':'ЗАВЕРШЕНИЕ',210,108);
+  x.font='bold '+L.tfs+'px '+PF;x.fillStyle='#ffffff';for(i=0;i<L.tl.length;i++)x.fillText(L.tl[i],g.tx,L.ty+i*L.lh);
+  x.font='42px '+PF;x.fillStyle=pmix('#ffffff',T.a,.88);for(i=0;i<L.sl.length;i++)x.fillText(L.sl[i],g.tx,L.sy+i*L.slh);
+  if(p.author){R(110,924,60,5,'#ffffff');x.font='bold 30px '+PF;x.fillStyle=pmix('#ffffff',T.a,.92);x.fillText(p.author,110,944)}
+ }else{
+  R(0,0,PWd,PHt,T.bg);R(0,0,18,PHt,T.a);
+  if(!s.img){x.font='bold 520px '+PF;x.fillStyle=pmix(T.a,T.bg,.07);x.textAlign='right';x.fillText(ppad(idx),1860,150);x.textAlign='left'}
+  x.font='bold 22px '+PF;x.fillStyle=T.mu;x.fillText((p.title||'').toUpperCase().slice(0,60),96,62);x.textAlign='right';x.fillText(ppad(idx+1)+' / '+ppad(n),1824,62);x.textAlign='left';
+  if(s.img){pic(T.a);cr(T.mu)}
+  x.font='bold '+L.tfs+'px '+PF;x.fillStyle=T.ink;for(i=0;i<L.tl.length;i++)x.fillText(L.tl[i],g.tx,L.ty+i*L.lh);
+  R(g.tx,L.by,120,10,T.a);
+  var y=L.y0,mk=Math.round(L.bfs*.38);x.font=L.bfs+'px '+PF;
+  L.it.forEach(function(lines){R(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);x.fillStyle=T.ink;lines.forEach(function(t,k){x.fillText(t,g.tx+56,y+k*L.blh)});y+=lines.length*L.blh+L.gp});
+ }
+ x.setTransform(1,0,0,1,0,0)}
+/* ================= /ядро ================= */
+
+/* ================= ПРЕЗЕНТАЦИИ: редактор, фото, просмотр, экспорт ================= */
+var PS={list:[],id:null,i:0,tab:'e',busy:false},ptm=null,prt=null;
+try{PS.list=JSON.parse(localStorage.getItem('gostpres')||'[]')}catch(e){}
+function psave(){try{localStorage.setItem('gostpres',JSON.stringify(PS.list))}catch(e){toast('Не хватило места в браузере — уберите часть фото')}}
+function pcur(){return PS.list.find(function(p){return p.id===PS.id})}
+function pLater(){clearTimeout(ptm);ptm=setTimeout(function(){psave();prender(true)},350)}
+function prenderSoon(){clearTimeout(prt);prt=setTimeout(function(){prender(true)},60)}
+function pnew(){var p={id:'p'+Date.now(),title:'',author:'',th:'blue',n:7,slides:[{k:'cover',t:'',b:[''],q:'',img:null},{k:'end',t:'Спасибо за внимание',b:['Вопросы?'],q:'',img:null}]};
+ PS.list.unshift(p);psave();loader('Создаю презентацию…','Готовлю шаблон и цвета',1400).then(function(){popen(p.id)})}
+function popen(id){PS.id=id;PS.i=0;PS.tab='e';pEditor()}
+function pExit(){PS.id=null;home()}
+
+/* ---------- фото из интернета ---------- */
+function pShrink(src){return new Promise(function(res,rej){var im=new Image();im.onload=function(){var m=1000,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+ var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.78))};im.onerror=rej;im.src=src})}
+async function pFetchImg(urls){
+ for(var k=0;k<urls.length;k++){try{var r=await fetch(urls[k]);if(!r.ok)continue;var b=await r.blob();
+  var d=await new Promise(function(res,rej){var f=new FileReader();f.onload=function(){res(f.result)};f.onerror=rej;f.readAsDataURL(b)});return await pShrink(d)}catch(e){}}
+ return null}
+async function pCommons(q){
+ var out=[],j=await jfetch('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=24&gsrsearch='+encodeURIComponent('filetype:bitmap '+q)+'&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=960'),pg=j&&j.query&&j.query.pages;
+ if(pg)Object.keys(pg).map(function(k){return pg[k]}).sort(function(a,b){return a.index-b.index}).forEach(function(w){var ii=w.imageinfo&&w.imageinfo[0];
+  if(!ii||!/jpe?g|png/i.test(ii.mime||'')||ii.width<800||ii.height<500)return;var f=ii.thumburl||ii.url;
+  out.push({th:f.replace(/\/960px-/,'/500px-'),fb:f,srcs:[f,ii.url],cr:'Wikimedia Commons'})});
+ return out}
+async function pOpenverse(q){
+ var j=await jfetch('https://api.openverse.org/v1/images/?q='+encodeURIComponent(q)+'&page_size=20&mature=false&extension=jpg');
+ return ((j&&j.results)||[]).filter(function(w){return w.url}).map(function(w){return{th:w.thumbnail||w.url,fb:w.url,srcs:[w.url,w.thumbnail].filter(Boolean),cr:'Openverse'+(w.creator?', '+w.creator:'')}})}
+async function pSearch(q){
+ q=String(q||'').trim();if(!q)return[];var qs=[q];
+ if(/[а-яё]/i.test(q)){try{var t=String(await ask('Переведи на английский как поисковый запрос для картинки (2–4 слова). Ответь только переводом, без кавычек и пояснений: '+q)).replace(/["«»“”]/g,'').split('\n')[0].trim();if(t&&t.length<80)qs.unshift(t)}catch(e){}}
+ var out=[],seen={};
+ for(var k=0;k<qs.length&&out.length<12;k++){(await pCommons(qs[k])).forEach(function(c){if(!seen[c.th]){seen[c.th]=1;out.push(c)}})}
+ if(out.length<4){(await pOpenverse(qs[0])).forEach(function(c){if(!seen[c.th]){seen[c.th]=1;out.push(c)}})}
+ return out}
+function pPick(i){
+ var p=pcur(),s=p.slides[i],ov=E('div',{id:'ovp'}),inn=E('div',{class:'in'}),st=E('div',{class:'sgst',style:'margin:10px 0 0'}),gr=E('div',{class:'pg'});
+ var q=E('input',{type:'text',value:s.q||(s.k==='cover'?p.title:s.t)||'',placeholder:'Что искать, например: бабочка',onkeydown:function(e){if(e.key==='Enter')go()}});
+ var sb=E('button',{class:'btn red',style:'margin-top:8px',text:'Найти фото',onclick:function(){go()}});
+ async function go(){sb.disabled=true;gr.innerHTML='';st.textContent='Ищу в интернете…';
+  try{var r=await pSearch(q.value);if(!r.length){st.textContent='Ничего не нашлось — попробуйте другой запрос';sb.disabled=false;return}
+   st.textContent='Нажмите на фото, чтобы вставить его в слайд';
+   r.forEach(function(c){var im=E('img',{src:c.th,alt:'',loading:'lazy'});im.onerror=function(){im.onerror=null;im.src=c.fb};
+    gr.append(E('button',{type:'button',onclick:async function(){st.textContent='Загружаю фото…';var d=await pFetchImg(c.srcs);if(!d){st.textContent='Это фото не загрузилось — выберите другое';return}
+     s.img=d;s.cr=c.cr;s.q=q.value.trim();ov.remove();psave();pList();prender(true)}},[im]))})
+  }catch(e){st.textContent='Не получилось найти фото. Проверьте интернет.'}sb.disabled=false}
+ inn.append(E('div',{class:'lab',style:'margin-top:0',text:'Фото из интернета'}),q,sb,E('button',{class:'btn',style:'margin:8px 0 0 8px',text:'Закрыть',onclick:function(){ov.remove()}}),st,gr);
+ ov.append(inn);document.body.append(ov);if(q.value)go()}
+async function pAuto(p){
+ var todo=[];p.slides.forEach(function(s,i){if(!s.img&&s.k!=='end'&&(s.q||s.t||s.k==='cover'))todo.push(i)});
+ if(!todo.length){toast('Во всех слайдах уже есть фото');return}
+ var rm=showLd('Подбираю фото…','Ищу картинки в интернете'),done=0,used={},got=0;
+ try{for(var k=0;k<todo.length;k+=3){
+  await Promise.all(todo.slice(k,k+3).map(async function(i){var s=p.slides[i],q=s.q||(s.k==='cover'?p.title:s.t);
+   try{var r=await pSearch(q);for(var j=0;j<r.length&&j<6;j++){if(used[r[j].th])continue;var d=await pFetchImg(r[j].srcs);if(d){used[r[j].th]=1;s.img=d;s.cr=r[j].cr;got++;break}}}catch(e){}
+   done++;var pp=$('#ov p');if(pp)pp.textContent='Готово '+done+' из '+todo.length}));psave()}
+ }finally{rm()}
+ if(!got)toast('Фото не нашлись — проверьте интернет или добавьте вручную');
+ pList();prender(true)}
+
+/* ---------- ИИ: текст презентации ---------- */
+async function pGen(){
+ var p=pcur();if(PS.busy)return;
+ if(!(p.title||'').trim()){toast('Сначала напишите тему презентации');var t=$('#pti');if(t)t.focus();return}
+ if(p.slides.some(function(s){return s.k==='content'&&(s.t||s.b.join('').trim())})&&!confirm('Заменить текущие слайды новыми?'))return;
+ PS.busy=true;var rm=showLd('Пишу презентацию…','Структура и тексты слайдов'),o=null;
+ try{
+  var t=await ask('Составь презентацию на тему «'+p.title+'». Нужно ровно '+p.n+' содержательных слайдов (без титульного и финального). Русский язык, простой понятный стиль. Ответь ТОЛЬКО JSON без markdown и пояснений: {"sub":"подзаголовок титульного слайда до 8 слов","cq":"поисковый запрос для картинки на титульный слайд, 2-3 слова по-английски","slides":[{"t":"короткий заголовок до 6 слов","b":["пункт до 14 слов","пункт","пункт"],"q":"поисковый запрос для фото, 2-3 слова по-английски, конкретный предмет или место"}]}. В каждом слайде 3 или 4 пункта. Не выдумывай точные цифры и цитаты.');
+  o=JSON.parse(t.replace(/```json|```/g,'').trim().replace(/^[^{]*/,'').replace(/[^}]*$/,''));
+  if(!o||!o.slides||!o.slides.length)throw new Error('пустой ответ');
+  var old=p.slides,cover=old[0],end=old[old.length-1];
+  cover.b=[String(o.sub||'')];cover.q=String(o.cq||p.title);cover.img=null;cover.cr='';
+  end.img=null;
+  p.slides=[cover].concat(o.slides.slice(0,15).map(function(s){return{k:'content',t:String(s.t||''),b:(s.b||[]).map(String).slice(0,5),q:String(s.q||s.t||''),img:null}}),[end]);
+  psave()
+ }catch(e){o=null;toast('ИИ не ответил: '+((e&&e.message)||'попробуйте ещё раз'))}
+ finally{rm();PS.busy=false}
+ if(o){PS.i=0;pList();prender(true);await pAuto(p)}}
+
+/* ---------- редактор ---------- */
+function pTab(t){PS.tab=t;var wide=matchMedia('(min-width:1000px)').matches;
+ document.querySelectorAll('.pbar .tab').forEach(function(b){b.classList.toggle('on',b.dataset.t===t)});
+ ['e','v'].forEach(function(k){var e=$('#p'+k);if(e)e.classList.toggle('on',wide||k===t)});prender(true)}
+function pEditor(){
+ var p=pcur(),a=$('#app');a.innerHTML='';
+ a.append(E('header',{class:'top'},[brand(),E('div',{class:'mono',text:'Презентация'})]));
+ var bar=E('div',{class:'bar pbar'}),tabs=E('div',{class:'tabs'});
+ [['e','Слайды'],['v','Просмотр']].forEach(function(t){tabs.append(E('button',{class:'tab','data-t':t[0],onclick:function(){pTab(t[0])},text:t[1]}))});bar.append(tabs);a.append(bar);
+ var cols=E('div',{class:'cols'}),left=E('div',{class:'pane',id:'pe'}),right=E('div',{class:'pane pv',id:'pv'});
+ /* карточка темы */
+ var c1=E('div',{class:'card'});
+ var ti=E('input',{type:'text',id:'pti',value:p.title,placeholder:'Например: Жизнь океана',oninput:function(){p.title=ti.value;pLater()},onkeydown:function(e){if(e.key==='Enter')pGen()}});
+ var au=E('input',{type:'text',value:p.author,placeholder:'Имя, класс или группа',oninput:function(){p.author=au.value;pLater()}});
+ var nr=E('div',{class:'nrow'});
+ [5,7,10,12].forEach(function(n){nr.append(E('button',{type:'button',class:'btn sm'+(p.n===n?' red':''),text:String(n),onclick:function(){p.n=n;psave();[].forEach.call(nr.children,function(b){b.classList.toggle('red',b.textContent===String(n))})}}))});
+ c1.append(E('label',{class:'l',style:'margin-top:0',text:'Тема презентации'}),ti,E('label',{class:'l',text:'Автор (необязательно)'}),au,E('label',{class:'l',text:'Сколько слайдов с текстом'}),nr,
+  E('button',{class:'btn red',style:'width:100%;margin-top:14px',text:'Создать презентацию по теме',onclick:pGen}),
+  E('button',{class:'btn',style:'width:100%;margin-top:8px',text:'Подобрать фото для всех слайдов',onclick:function(){pAuto(p)}}));
+ /* карточка цвета */
+ var c2=E('div',{class:'card'}),sw=E('div',{class:'sw'});
+ c2.append(E('div',{class:'lab',style:'margin:0 0 10px',text:'Цвет оформления'}));
+ Object.keys(PTH).forEach(function(k){var T=PTH[k];sw.append(E('button',{type:'button',class:'swb'+(p.th===k?' on':''),'data-k':k,onclick:function(){p.th=k;psave();[].forEach.call(sw.children,function(b){b.classList.toggle('on',b.dataset.k===k)});prender(true)}},[E('i',{style:'background:'+T.a}),T.n]))});
+ c2.append(sw);
+ left.append(c1,c2,E('div',{class:'lab',text:'Слайды'}),E('div',{id:'plist'}));
+ /* просмотр */
+ var cv=E('canvas',{id:'pcv',width:1920,height:1080});
+ cv.onclick=function(e){var r=cv.getBoundingClientRect();pGo(e.clientX-r.left>r.width/2?1:-1)};
+ var tx=0;cv.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX},{passive:true});
+ cv.addEventListener('touchend',function(e){var d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>40){pGo(d<0?1:-1);cv.dataset.sw=1;setTimeout(function(){delete cv.dataset.sw},350)}},{passive:true});
+ var ocl=cv.onclick;cv.onclick=function(e){if(cv.dataset.sw)return;ocl(e)};
+ right.append(E('div',{class:'lab',style:'margin-top:0',id:'pcnt'}),E('div',{id:'pfs'},[cv]),
+  E('div',{class:'pnav'},[E('button',{class:'btn sm',text:'‹ Назад',onclick:function(){pGo(-1)}}),E('div',{class:'pcn',id:'pcn'}),E('button',{class:'btn sm',text:'Вперёд ›',onclick:function(){pGo(1)}}),
+   E('button',{class:'btn sm dark',text:'На весь экран',onclick:pFull})]),E('div',{class:'pth',id:'pth'}));
+ cols.append(left,right);a.append(cols);
+ a.append(E('div',{class:'ready'},[E('button',{class:'btn back',onclick:function(){psave();pExit()},text:'← Назад'}),E('button',{class:'btn red',onclick:pExport,text:'Скачать PDF / PPTX'})]));
+ pList();pTab(PS.tab)}
+function pFull(){var e=$('#pfs');(e.requestFullscreen||e.webkitRequestFullscreen||function(){toast('Полный экран не поддерживается')}).call(e)}
+function pGo(d){var p=pcur();if(!p)return;PS.i=Math.max(0,Math.min(p.slides.length-1,PS.i+d));prender()}
+addEventListener('resize',function(){clearTimeout(PS._rz);PS._rz=setTimeout(function(){if(PS.id&&$('#pe'))pTab(PS.tab)},250)});
+document.addEventListener('keydown',function(e){if(!PS.id||!$('#pcv'))return;var t=e.target&&e.target.tagName;if(/INPUT|TEXTAREA|SELECT/.test(t))return;
+ if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){pGo(1);e.preventDefault()}else if(e.key==='ArrowLeft'||e.key==='PageUp'){pGo(-1);e.preventDefault()}});
+function pList(){
+ var p=pcur(),box=$('#plist');if(!box)return;box.innerHTML='';var n=p.slides.length;
+ p.slides.forEach(function(s,i){
+  var card=E('div',{class:'sec pslide',onfocusin:function(){if(PS.i!==i){PS.i=i;prender()}}}),kind=s.k==='cover'?'Титульный':s.k==='end'?'Финальный':'Слайд';
+  var hd=E('div',{class:'hd2'},[E('b',{text:(i+1)+'. '+kind})]),ac=E('div',{class:'acts',style:'margin:0'});
+  if(s.k==='content'){
+   if(i>1)ac.append(E('button',{class:'btn sm',text:'↑',onclick:function(){p.slides.splice(i-1,0,p.slides.splice(i,1)[0]);PS.i=i-1;psave();pList();prender(true)}}));
+   if(i<n-2)ac.append(E('button',{class:'btn sm',text:'↓',onclick:function(){p.slides.splice(i+1,0,p.slides.splice(i,1)[0]);PS.i=i+1;psave();pList();prender(true)}}));
+   ac.append(E('button',{class:'btn sm',text:'✕',onclick:function(){if(confirm('Удалить слайд?')){p.slides.splice(i,1);PS.i=Math.max(0,i-1);psave();pList();prender(true)}}}))}
+  hd.append(ac);card.append(hd);
+  if(s.k==='content'){var ti=E('input',{type:'text',value:s.t||'',placeholder:'Заголовок слайда',oninput:function(){s.t=ti.value;pLater()}});card.append(ti)}
+  else if(s.k==='end'){var te=E('input',{type:'text',value:s.t||'',placeholder:'Спасибо за внимание',oninput:function(){s.t=te.value;pLater()}});card.append(te)}
+  var ta=E('textarea',{style:'min-height:'+(s.k==='content'?100:60)+'px;margin-top:8px',placeholder:s.k==='content'?'Каждая строка — отдельный пункт':'Подзаголовок',oninput:function(){s.b=ta.value.split('\n');pLater()}});ta.value=(s.b||[]).join('\n');card.append(ta);
+  var im=E('div',{class:'pim'}),fi=E('input',{type:'file',accept:'image/*',class:'hide',onchange:function(){var f=fi.files[0];if(!f)return;var r=new FileReader();r.onload=function(){pShrink(r.result).then(function(d){s.img=d;s.cr='';psave();pList();prender(true)}).catch(function(){toast('Не удалось открыть фото')})};r.readAsDataURL(f)}});
+  if(s.img)im.append(E('img',{src:s.img,alt:''}));
+  im.append(E('button',{class:'btn sm red',text:s.img?'Другое фото':'Найти фото',onclick:function(){pPick(i)}}),E('button',{class:'btn sm',text:'Своё фото',onclick:function(){fi.click()}}),fi);
+  if(s.img)im.append(E('button',{class:'btn sm',text:'Убрать',onclick:function(){s.img=null;s.cr='';psave();pList();prender(true)}}));
+  card.append(im);box.append(card)});
+ box.append(E('button',{class:'btn',style:'width:100%;margin-bottom:18px',text:'+ Добавить слайд',onclick:function(){p.slides.splice(n-1,0,{k:'content',t:'',b:[''],q:'',img:null});PS.i=n-1;psave();pList();prender(true)}}))}
+function prender(full){
+ var p=pcur(),cv=$('#pcv');if(!p||!cv)return;var n=p.slides.length;
+ if(PS.i>=n)PS.i=n-1;if(PS.i<0)PS.i=0;
+ pdraw(cv.getContext('2d'),p,PS.i,n);
+ var c=$('#pcnt');if(c)c.textContent='Просмотр презентации';var cn=$('#pcn');if(cn)cn.textContent='Слайд '+(PS.i+1)+' из '+n;
+ var th=$('#pth');if(!th)return;
+ if(th.children.length!==n){th.innerHTML='';p.slides.forEach(function(s,i){th.append(E('canvas',{width:384,height:216,onclick:function(){PS.i=i;prender()}}))});full=true}
+ [].forEach.call(th.children,function(t,i){t.classList.toggle('on',i===PS.i);if(full||!t._d){pdraw(t.getContext('2d'),p,i,n);t._d=1}});
+ var a=th.children[PS.i];if(a)th.scrollLeft=a.offsetLeft-th.clientWidth/2+a.clientWidth/2}
+
+/* ---------- экспорт ---------- */
+function pName(p,v){var x=String(v==null?(p.title||'Презентация'):v).replace(/\.(pptx|pdf)$/i,'').replace(/[\\\/:*?"<>|]/g,'').replace(/\s+/g,' ').trim().slice(0,80);return x||'Презентация'}
+function pExport(){
+ var p=pcur(),fmt='pdf',ov=E('div',{id:'ov',class:'dim'}),c=E('div',{class:'card dn'}),sg=E('div',{class:'seg'}),
+  nmi=E('input',{type:'text',value:pName(p),style:'text-align:center;margin-bottom:6px'}),ext=E('div',{class:'sgst',style:'margin-bottom:12px'}),fin=E('button',{class:'btn red fin',text:'Скачать'});
+ function upd(){sg.innerHTML='';[['pdf','PDF','.pdf'],['pptx','PowerPoint','.pptx']].forEach(function(o){sg.append(E('button',{type:'button',class:'opt'+(fmt===o[0]?' on':''),onclick:function(){fmt=o[0];upd()}},[E('b',{text:o[1]}),E('span',{text:o[2]})]))});
+  ext.textContent='Имя файла: '+pName(p,nmi.value)+'.'+fmt}
+ nmi.oninput=upd;upd();
+ fin.onclick=async function(){fin.disabled=true;try{if(fmt==='pdf')await pPdf(p,nmi.value);else await pPptx(p,nmi.value);ov.remove()}finally{fin.disabled=false}};
+ c.append(E('div',{class:'lab',style:'margin-top:0',text:'Экспорт'}),E('div',{style:'font-size:1.25rem;font-weight:700;margin-bottom:4px',text:'Слайдов: '+p.slides.length}),
+  E('div',{class:'hint',style:'margin:0 auto 14px',text:'PDF — для показа и печати. PowerPoint — чтобы дорабатывать текст в программе.'}),sg,E('label',{class:'l',style:'text-align:left;margin-top:0',text:'Название файла'}),nmi,ext,fin,
+  E('button',{class:'btn sec2',text:'Вернуться к редактированию',onclick:function(){ov.remove()}}));
+ ov.append(c);document.body.append(ov)}
+function pPreload(p){return Promise.all(p.slides.map(function(s){return pload(s.img)}))}
+async function pPdf(p,fname){
+ var rm=showLd('Собираю PDF…','Каждый слайд — отдельная страница');
+ try{
+  if(!window.jspdf)await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+  await pPreload(p);
+  var pdf=new window.jspdf.jsPDF({unit:'mm',format:[338.667,190.5],orientation:'landscape',compress:true}),cv=document.createElement('canvas');cv.width=PWd;cv.height=PHt;
+  for(var i=0;i<p.slides.length;i++){pdraw(cv.getContext('2d'),p,i,p.slides.length);if(i)pdf.addPage([338.667,190.5],'landscape');pdf.addImage(cv.toDataURL('image/jpeg',.92),'JPEG',0,0,338.667,190.5)}
+  await saveBlob(pdf.output('blob'),pName(p,fname)+'.pdf')
+ }catch(e){toast('Не удалось собрать PDF: '+((e&&e.message)||'ошибка'))}
+ finally{rm()}}
+function pCrop(im,w,h){var c=document.createElement('canvas');c.width=Math.round(w*1.35);c.height=Math.round(h*1.35);pcov(c.getContext('2d'),im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.88)}
+async function pPptx(p,fname){
+ var rm=showLd('Собираю PowerPoint…','Слайды с текстом и фото');
+ try{
+  if(!window.PptxGenJS)await loadScript('https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js');
+  await pPreload(p);
+  var pp=new window.PptxGenJS();pp.layout='LAYOUT_WIDE';pp.title=p.title||'Презентация';pp.author=p.author||'';
+  var mx=document.createElement('canvas').getContext('2d'),K=13.333/PWd,n=p.slides.length;
+  function R(v){return +(v*K).toFixed(4)}function c6(c){return c.replace('#','')}
+  for(var i=0;i<n;i++){
+   var G=pgeom(p,i,mx),s=G.s,g=G.g,L=G.L,T=G.T,sl=pp.addSlide(),im=s.img?await pload(s.img):null;
+   var rect=function(x,y,w,h,col){sl.addShape(pp.ShapeType.rect,{x:R(x),y:R(y),w:R(w),h:R(h),fill:{color:c6(col)},line:{type:'none'}})};
+   var circ=function(cx,cy,r,col){sl.addShape(pp.ShapeType.ellipse,{x:R(cx-r),y:R(cy-r),w:R(2*r),h:R(2*r),fill:{color:c6(col)},line:{type:'none'}})};
+   var txt=function(t,x,y,w,h,fs,col,o){sl.addText(t,Object.assign({x:R(x),y:R(y),w:R(w),h:R(h),fontFace:'Arial',fontSize:fs/2,color:c6(col),margin:0,valign:'top',wrap:true,fit:'none'},o||{}))};
+   if(G.cover){
+    sl.background={color:c6(T.a)};circ(260,1040,460,pmix('#ffffff',T.a,.07));circ(1560,60,320,pmix('#ffffff',T.a,.07));
+    if(im){rect(g.ix+26,g.iy+26,g.iw,g.ih,pmix('#ffffff',T.a,.22));sl.addImage({data:pCrop(im,g.iw,g.ih),x:R(g.ix),y:R(g.iy),w:R(g.iw),h:R(g.ih)});if(s.cr)txt('Фото: '+s.cr,g.ix,972,g.iw,28,18,pmix('#ffffff',T.a,.7))}
+    rect(110,120,80,8,pmix('#ffffff',T.a,.9));txt(s.k==='cover'?'ПРЕЗЕНТАЦИЯ':'ЗАВЕРШЕНИЕ',210,104,700,34,24,pmix('#ffffff',T.a,.75),{bold:true});
+    txt(L.title,g.tx,L.ty,g.tw+30,L.th+10,L.tfs,'#ffffff',{bold:true,lineSpacing:L.lh/2});
+    if(L.sl.length)txt(L.sl.join(' '),g.tx,L.sy,g.tw+30,L.sl.length*L.slh+10,42,pmix('#ffffff',T.a,.88),{lineSpacing:L.slh/2});
+    if(p.author){rect(110,924,60,5,'#ffffff');txt(p.author,110,944,900,44,30,pmix('#ffffff',T.a,.92),{bold:true})}
+   }else{
+    sl.background={color:c6(T.bg)};rect(0,0,18,PHt,T.a);
+    if(!im)txt(ppad(i),900,100,960,560,520,pmix(T.a,T.bg,.07),{bold:true,align:'right'});
+    txt((p.title||'').toUpperCase().slice(0,60),96,58,900,30,22,T.mu,{bold:true});txt(ppad(i+1)+' / '+ppad(n),1424,58,400,30,22,T.mu,{bold:true,align:'right'});
+    if(im){rect(g.ix+24,g.iy+24,g.iw,g.ih,T.a);sl.addImage({data:pCrop(im,g.iw,g.ih),x:R(g.ix),y:R(g.iy),w:R(g.iw),h:R(g.ih)});if(s.cr)txt('Фото: '+s.cr,g.ix,972,g.iw,28,18,T.mu)}
+    txt(L.title,g.tx,L.ty,g.tw+30,L.th+10,L.tfs,T.ink,{bold:true,lineSpacing:L.lh/2});rect(g.tx,L.by,120,10,T.a);
+    var y=L.y0,mk=Math.round(L.bfs*.38);
+    L.it.forEach(function(lines){var hh=lines.length*L.blh;rect(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);txt(lines.join(' '),g.tx+56,y,g.tw-26,hh+6,L.bfs,T.ink,{lineSpacing:L.blh/2});y+=hh+L.gp})
+   }}
+  var blob=await pp.write({outputType:'blob'});
+  await saveBlob(blob,pName(p,fname)+'.pptx')
+ }catch(e){toast('Не удалось собрать PPTX: '+((e&&e.message)||'ошибка'))}
+ finally{rm()}}
+
+/* ---------- главная и выбор типа ---------- */
+function home(){home0();
+ if(PS.list.length){var a=$('#app');a.append(E('div',{class:'lab',text:'Презентации'}));var g=E('div',{class:'grid'});
+  PS.list.forEach(function(p){g.append(E('div',{class:'doc',onclick:function(){popen(p.id)}},[E('div',{},[E('div',{style:'font-weight:700',text:p.title||'Без названия'}),E('small',{text:'Презентация · '+p.slides.length+' сл. · '+(PTH[p.th]||PTH.blue).n})]),
+   E('button',{class:'btn sm',onclick:function(ev){ev.stopPropagation();if(confirm('Удалить презентацию?')){PS.list=PS.list.filter(function(x){return x!==p});psave();home()}},text:'✕'})]))});a.append(g)}}
+function picker(){picker0();var g=$('#app .grid');if(g)g.prepend(E('button',{class:'tile',onclick:pnew},[E('b',{text:'Презентация'}),E('span',{text:'Слайды с фото из интернета, 5 цветов, экспорт в PDF и PPTX'})]))}
+/* ================= /презентации ================= */
+
 loader('Создание документов','Открываю файл…',1300).then(home);
 </script>
 </body>
