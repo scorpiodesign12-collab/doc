@@ -169,6 +169,24 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;background:var(--blue
 .pg button{border:3px solid var(--line);padding:0;background:#eef2fb;cursor:pointer;aspect-ratio:4/3;overflow:hidden;transition:border-color .15s}.pg button:hover{border-color:var(--blue)}
 .pg img{width:100%;height:100%;object-fit:cover;display:block}
 @media(min-width:1000px){.pbar{display:none}}
+@keyframes wrg{0%{background-position:0 0}100%{background-position:200% 0}}
+@keyframes wdots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+textarea.wr{border-color:var(--blue)!important;background:linear-gradient(90deg,#eef3ff,#d9e5ff,#eef3ff)!important;background-size:200% 100%!important;animation:wrg 1.1s linear infinite;color:#17315f!important;opacity:1!important}
+.wtag{font-weight:700;color:var(--blue);font-size:.85rem}.wtag:after{content:'';animation:wdots 1s steps(1) infinite}
+#pfv{position:fixed;inset:0;z-index:70;background:#05070d;display:flex}
+#pfv .trk{display:flex;width:100%;height:100%;scrollbar-width:none}#pfv .trk::-webkit-scrollbar{display:none}
+#pfv.vd .trk{overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory}
+#pfv.vd .vs{flex:0 0 100vw;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center}
+#pfv.vd canvas{width:100vw;height:100vh;object-fit:contain;cursor:pointer;display:block}
+#pfv.vm .trk{flex-direction:column;overflow-y:auto;overflow-x:hidden;gap:14px;padding:calc(env(safe-area-inset-top,0px) + 64px) 0 80px;scroll-snap-type:y proximity;-webkit-overflow-scrolling:touch}
+#pfv.vm .vs{flex:none;scroll-snap-align:center}#pfv.vm canvas{width:100%;height:auto;display:block}
+#pfv .vx{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:3;width:44px;height:44px;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:1.3rem;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#pfv .vcn{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:50%;transform:translateX(-50%);z-index:3;padding:6px 14px;background:rgba(0,0,0,.55);color:#fff;font:700 .85rem Arial,sans-serif;pointer-events:none}
+#pfv .vn{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:48px;height:76px;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:2.2rem;cursor:pointer;opacity:0;transition:opacity .2s}
+#pfv:hover .vn{opacity:1}#pfv .vn.l{left:10px}#pfv .vn.r{right:10px}
+.pcols{grid-template-columns:minmax(0,1fr)}.pcols>*{min-width:0}
+@media(min-width:1000px){.pcols{grid-template-columns:minmax(380px,520px) minmax(0,1fr)}}
+.pv #pfs,.pv .pnav,.pv .pth{max-width:100%;min-width:0}#pfs canvas{max-width:100%}
 </style>
 </head>
 <body>
@@ -722,6 +740,16 @@ function pwrap(x,text,w){var out=[];String(text||'').split('\n').forEach(functio
   line=wd});
  if(line)out.push(line)});return out}
 function pcov(x,im,dx,dy,dw,dh){var r=Math.max(dw/im.width,dh/im.height),sw=dw/r,sh=dh/r;x.drawImage(im,(im.width-sw)/2,(im.height-sh)*.4,sw,sh,dx,dy,dw,dh)}
+function pstar(x,cx,cy,r,c){var q=r*.18;x.fillStyle=c;x.beginPath();x.moveTo(cx,cy-r);x.lineTo(cx+q,cy-q);x.lineTo(cx+r,cy);x.lineTo(cx+q,cy+q);x.lineTo(cx,cy+r);x.lineTo(cx-q,cy+q);x.lineTo(cx-r,cy);x.lineTo(cx-q,cy-q);x.closePath();x.fill()}
+function pdeco(G){var T=G.T,g=G.g,has=!!G.s.img,b=[],f=[],c,c2;
+ if(G.cover){c=pmix('#ffffff',G.T.a,.42);c2=pmix('#ffffff',G.T.a,.24);
+  b=[[960,165,34,c],[1010,1000,22,c2],[1860,100,30,c],[64,640,26,c2],[880,62,16,c2],[1860,1010,18,c2]];
+  if(!has)b=b.concat([[1700,420,66,c2],[1560,290,28,c],[1790,660,36,c2],[1620,880,20,c]])}
+ else{c=pmix(T.a,T.bg,.34);c2=pmix(T.a,T.bg,.18);
+  f.push([g.tx+170,G.L.by+5,15,c]);
+  if(has)f=f.concat([[g.ix,g.iy,40,T.a],[g.ix+g.iw+30,g.iy-30,20,c]]);
+  else f=f.concat([[1700,330,62,c],[1560,240,26,c2],[1790,520,32,c2],[1650,640,18,c]])}
+ return{b:b,f:f}}
 function pload(src){return new Promise(function(res){if(!src)return res(null);var o=PIM[src];if(o&&o.c)return res(o.i);var i=new Image();i.onload=function(){PIM[src]={i:i,c:true};res(i)};i.onerror=function(){res(null)};i.src=src})}
 function pimg(src){var o=PIM[src];if(o&&o.c)return o.i;if(!o){PIM[src]={c:false};pload(src).then(function(i){if(i&&typeof prenderSoon==='function')prenderSoon()})}return null}
 /* геометрия и подгонка текста — общая для превью, PDF и PPTX */
@@ -736,20 +764,20 @@ function pgeom(p,idx,x){
  L.tfs=tfs[i];L.tl=tl;L.lh=Math.round(L.tfs*1.14);L.th=L.lh*tl.length;
  var bl=(s.b||[]).filter(function(t){return t&&t.trim()});
  if(cover){x.font='42px '+PF;L.sub=bl[0]||'';L.sl=bl[0]?pwrap(x,bl[0],g.tw):[];L.slh=58;var bh=L.th+(L.sl.length?40+L.sl.length*L.slh:0);L.ty=Math.round((PHt-bh)/2)-20;L.sy=L.ty+L.th+40}
- else{L.ty=170;L.by=L.ty+L.th+30;L.y0=L.by+64;var av=965-L.y0,bs=[42,38,34,30,27,24],j,it,lh,gp;
-  for(j=0;j<bs.length;j++){x.font=bs[j]+'px '+PF;it=bl.map(function(t){return pwrap(x,t,g.tw-56)});lh=Math.round(bs[j]*1.36);gp=Math.round(bs[j]*.75);
+ else{L.ty=170;L.by=L.ty+L.th+30;L.y0=L.by+64;var par=s.mode==='par',av=965-L.y0,bs=[42,38,34,30,27,24,22,20],j,it,lh,gp;
+  for(j=0;j<bs.length;j++){x.font=bs[j]+'px '+PF;it=bl.map(function(t){return pwrap(x,t,g.tw-(par?0:56))});lh=Math.round(bs[j]*(par?1.45:1.36));gp=Math.round(bs[j]*(par?.6:.75));
    var h=it.reduce(function(a,l){return a+l.length*lh},0)+gp*Math.max(0,it.length-1);if(h<=av)break}
-  if(j>=bs.length)j=bs.length-1;L.bfs=bs[j];L.it=it;L.raw=bl;L.blh=lh;L.gp=gp}
+  if(j>=bs.length)j=bs.length-1;L.bfs=bs[j];L.it=it;L.raw=bl;L.par=par;L.blh=lh;L.gp=gp}
  return{s:s,cover:cover,g:g,L:L,T:PTH[p.th]||PTH.blue}}
 function pdraw(x,p,idx,n){
  var G=pgeom(p,idx,x),s=G.s,g=G.g,L=G.L,T=G.T,sc=x.canvas.width/PWd,im=s.img?pimg(s.img):null,i;
- x.setTransform(sc,0,0,sc,0,0);x.textBaseline='top';x.textAlign='left';
+ x.setTransform(sc,0,0,sc,0,0);x.textBaseline='top';x.textAlign='left';var D=pdeco(G);
  function R(a,b,w,h,c){x.fillStyle=c;x.fillRect(a,b,w,h)}
  function C(cx,cy,r,c){x.fillStyle=c;x.beginPath();x.arc(cx,cy,r,0,7);x.fill()}
  function pic(fc){if(fc)R(g.ix+(G.cover?26:24),g.iy+(G.cover?26:24),g.iw,g.ih,fc);if(im)pcov(x,im,g.ix,g.iy,g.iw,g.ih);else R(g.ix,g.iy,g.iw,g.ih,pmix(T.a,T.bg,.15))}
  function cr(c){if(s.img&&s.cr){x.font='18px '+PF;x.fillStyle=c;x.fillText('Фото: '+s.cr,g.ix,972)}}
  if(G.cover){
-  R(0,0,PWd,PHt,T.a);C(260,1040,460,pmix('#ffffff',T.a,.07));C(1560,60,320,pmix('#ffffff',T.a,.07));
+  R(0,0,PWd,PHt,T.a);C(260,1040,460,pmix('#ffffff',T.a,.07));C(1560,60,320,pmix('#ffffff',T.a,.07));D.b.forEach(function(d){pstar(x,d[0],d[1],d[2],d[3])});
   if(s.img){pic(pmix('#ffffff',T.a,.22));cr(pmix('#ffffff',T.a,.7))}
   R(110,120,80,8,pmix('#ffffff',T.a,.9));x.font='bold 24px '+PF;x.fillStyle=pmix('#ffffff',T.a,.75);x.fillText(s.k==='cover'?'ПРЕЗЕНТАЦИЯ':'ЗАВЕРШЕНИЕ',210,108);
   x.font='bold '+L.tfs+'px '+PF;x.fillStyle='#ffffff';for(i=0;i<L.tl.length;i++)x.fillText(L.tl[i],g.tx,L.ty+i*L.lh);
@@ -759,11 +787,11 @@ function pdraw(x,p,idx,n){
   R(0,0,PWd,PHt,T.bg);R(0,0,18,PHt,T.a);
   if(!s.img){x.font='bold 520px '+PF;x.fillStyle=pmix(T.a,T.bg,.07);x.textAlign='right';x.fillText(ppad(idx),1860,150);x.textAlign='left'}
   x.font='bold 22px '+PF;x.fillStyle=T.mu;x.fillText((p.title||'').toUpperCase().slice(0,60),96,62);x.textAlign='right';x.fillText(ppad(idx+1)+' / '+ppad(n),1824,62);x.textAlign='left';
-  if(s.img){pic(T.a);cr(T.mu)}
+  if(s.img){pic(T.a);cr(T.mu)}D.f.forEach(function(d){pstar(x,d[0],d[1],d[2],d[3])});
   x.font='bold '+L.tfs+'px '+PF;x.fillStyle=T.ink;for(i=0;i<L.tl.length;i++)x.fillText(L.tl[i],g.tx,L.ty+i*L.lh);
   R(g.tx,L.by,120,10,T.a);
   var y=L.y0,mk=Math.round(L.bfs*.38);x.font=L.bfs+'px '+PF;
-  L.it.forEach(function(lines){R(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);x.fillStyle=T.ink;lines.forEach(function(t,k){x.fillText(t,g.tx+56,y+k*L.blh)});y+=lines.length*L.blh+L.gp});
+  L.it.forEach(function(lines){if(!L.par)R(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);x.fillStyle=T.ink;lines.forEach(function(t,k){x.fillText(t,g.tx+(L.par?0:56),y+k*L.blh)});y+=lines.length*L.blh+L.gp});
  }
  x.setTransform(1,0,0,1,0,0)}
 /* ================= /ядро ================= */
@@ -775,7 +803,8 @@ function psave(){try{localStorage.setItem('gostpres',JSON.stringify(PS.list))}ca
 function pcur(){return PS.list.find(function(p){return p.id===PS.id})}
 function pLater(){clearTimeout(ptm);ptm=setTimeout(function(){psave();prender(true)},350)}
 function prenderSoon(){clearTimeout(prt);prt=setTimeout(function(){prender(true)},60)}
-function pnew(){var p={id:'p'+Date.now(),title:'',author:'',th:'blue',ff:'Arial',n:7,slides:[{k:'cover',t:'',b:[''],q:'',img:null},{k:'end',t:'Спасибо за внимание',b:['Вопросы?'],q:'',img:null}]};
+function pVol(p){return{few:{n:'2–3',w:'до 8',s:'1–2'},mid:{n:'3–4',w:'до 14',s:'3–4'},many:{n:'5–6',w:'до 22',s:'5–7'}}[p.vol||'mid']}
+function pnew(){var p={id:'p'+Date.now(),title:'',author:'',th:'blue',ff:'Arial',vol:'mid',fmt:'bul',n:7,slides:[{k:'cover',t:'',b:[''],q:'',img:null},{k:'end',t:'Спасибо за внимание',b:['Вопросы?'],q:'',img:null}]};
  PS.list.unshift(p);psave();loader('Создаю презентацию…','Готовлю шаблон и цвета',1400).then(function(){popen(p.id)})}
 function popen(id){PS.id=id;PS.i=0;PS.tab='e';pEditor()}
 function pExit(){PS.id=null;home()}
@@ -835,28 +864,70 @@ async function pGen(force){
  if(p.slides.some(function(s){return s.k==='content'&&(s.t||s.b.join('').trim())})&&!force&&!confirm('Заменить текущие слайды новыми?'))return;
  PS.busy=true;var rm=showLd('Пишу презентацию…','Структура и тексты слайдов'),o=null;
  try{
-  var t=await ask('Составь презентацию на тему «'+p.title+'». Нужно ровно '+p.n+' содержательных слайдов (без титульного и финального). Русский язык, простой понятный стиль. Ответь ТОЛЬКО JSON без markdown и пояснений: {"sub":"подзаголовок титульного слайда до 8 слов","cq":"поисковый запрос для картинки на титульный слайд, 2-3 слова по-английски","slides":[{"t":"короткий заголовок до 6 слов","b":["пункт до 14 слов","пункт","пункт"],"q":"поисковый запрос для фото, 2-3 слова по-английски, конкретный предмет или место"}]}. В каждом слайде 3 или 4 пункта. Не выдумывай точные цифры и цитаты.');
+  var V=pVol(p),par=(p.fmt==='par'),spec=par?'"b":["один связный абзац из '+V.s+' предложений, без списков"]':'"b":["пункт, '+V.w+' слов","пункт"]';
+  var t=await ask('Составь презентацию на тему «'+p.title+'». Нужно ровно '+p.n+' содержательных слайдов (без титульного и финального). Русский язык, простой понятный стиль. Ответь ТОЛЬКО JSON без markdown и пояснений: {"sub":"подзаголовок титульного слайда до 8 слов","cq":"поисковый запрос для картинки на титульный слайд, 2-3 слова по-английски","slides":[{"t":"короткий заголовок до 6 слов",'+spec+',"q":"поисковый запрос для фото, 2-3 слова по-английски, конкретный предмет или место"}]}. '+(par?'В каждом слайде связный текст.':'В каждом слайде '+V.n+' пункта.')+' Не выдумывай точные цифры и цитаты.');
   o=JSON.parse(t.replace(/```json|```/g,'').trim().replace(/^[^{]*/,'').replace(/[^}]*$/,''));
   if(!o||!o.slides||!o.slides.length)throw new Error('пустой ответ');
   var old=p.slides,cover=old[0],end=old[old.length-1];
   cover.b=[String(o.sub||'')];cover.q=String(o.cq||p.title);cover.img=null;cover.cr='';
   end.img=null;
-  p.slides=[cover].concat(o.slides.slice(0,15).map(function(s){return{k:'content',t:String(s.t||''),b:(s.b||[]).map(String).slice(0,5),q:String(s.q||s.t||''),img:null}}),[end]);
+  p.slides=[cover].concat(o.slides.slice(0,15).map(function(s){return{k:'content',t:String(s.t||''),b:par?[[].concat(s.b||[]).map(String).join(' ')]:[].concat(s.b||[]).map(String).slice(0,6),q:String(s.q||s.t||''),mode:par?'par':'bul',img:null}}),[end]);
   psave()
  }catch(e){o=null;toast('ИИ не ответил: '+((e&&e.message)||'попробуйте ещё раз'))}
  finally{rm();PS.busy=false}
  if(o){PS.i=0;pList();prender(true);await pAuto(p)}}
 
+/* ---------- переписать текст слайда с анимацией ---------- */
+async function pRewrite(p,s,mode,ta,setBusy,mb){
+ if(PS.busy)return;var cur=(s.b||[]).filter(function(x){return x&&x.trim()}).join('\n'),par=mode==='par';
+ if((s.mode||'bul')===mode&&cur.trim()){toast(par?'Текст уже сплошной — выберите «Пунктами»':'Текст уже пунктами — выберите «Сплошной текст»');return}
+ if(!cur.trim()&&!(s.t||'').trim()){toast('Сначала напишите заголовок или текст слайда');return}
+ PS.busy=true;setBusy(true);ta.value='';ta.disabled=true;ta.classList.add('wr');var out=null,V=pVol(p);
+ try{
+  var t=await ask('Перепиши текст слайда презентации с заголовком «'+(s.t||p.title)+'» (тема: «'+p.title+'»). Сохрани смысл и факты, не выдумывай точных цифр и цитат. '+(par?'Нужен сплошной связный текст: один абзац из '+V.s+' предложений, без списков и маркеров.':'Нужны пункты: '+V.n+' коротких пункта ('+V.w+' слов), каждый с новой строки, без маркеров и нумерации.')+' Русский язык. Ответь только новым текстом без пояснений. Текущий текст:\n'+(cur||'(пусто — придумай по заголовку)'));
+  var lines=String(t).replace(/```[a-z]*/g,'').split('\n').map(function(l){return l.replace(/^\s*(?:[-–—•*·]|\d+[.)])\s*/,'').trim()}).filter(Boolean);
+  if(!lines.length)throw new Error('пусто');
+  out=par?[lines.join(' ')]:lines.slice(0,8)
+ }catch(e){toast('ИИ не ответил — попробуйте ещё раз')}
+ if(out){var full=out.join('\n'),k=0;
+  await new Promise(function(res){var iv=setInterval(function(){k=Math.min(full.length,k+Math.max(2,Math.ceil(full.length/110)));var part=full.slice(0,k);ta.value=part;s.b=par?[part]:part.split('\n');s.mode=mode;prender();ta.scrollTop=ta.scrollHeight;if(k>=full.length){clearInterval(iv);res()}},32)});
+  s.b=out;s.mode=mode}
+ else ta.value=cur;
+ ta.disabled=false;ta.classList.remove('wr');ta.value=(s.b||[]).join('\n');
+ if(mb){mb.bul.classList.toggle('red',(s.mode||'bul')==='bul');mb.par.classList.toggle('red',s.mode==='par')}
+ PS.busy=false;setBusy(false);psave();prender(true)}
+/* ---------- просмотр: ПК — вправо/влево, телефон — сверху вниз ---------- */
+function pMobile(){return matchMedia('(max-width:800px)').matches||matchMedia('(pointer:coarse)').matches}
+async function pView(start){
+ var p=pcur();if(!p||$('#pfv'))return;var mob=pMobile(),n=p.slides.length,cur=Math.max(0,Math.min(n-1,start||0));
+ await pPreload(p);
+ var ov=E('div',{id:'pfv',class:mob?'vm':'vd'}),trk=E('div',{class:'trk'}),cn=E('div',{class:'vcn'}),W=mob?1280:1920,H=mob?720:1080,wr=[],drawn={},bo=document.body.style.overflow;
+ function paint(i){if(drawn[i]||!wr[i])return;drawn[i]=1;var c=wr[i].firstChild;c.width=W;c.height=H;pdraw(c.getContext('2d'),p,i,n)}
+ function upd(){cn.textContent=(cur+1)+' / '+n}
+ function go(d){var i=Math.max(0,Math.min(n-1,cur+d));if(mob)wr[i].scrollIntoView({behavior:'smooth',block:'center'});else trk.scrollTo({left:i*trk.clientWidth,behavior:'smooth'})}
+ p.slides.forEach(function(s,i){var c=E('canvas',{width:16,height:9}),w=E('div',{class:'vs'},[c]);c.onclick=function(e){if(mob)return;var r=c.getBoundingClientRect();go(e.clientX-r.left>r.width/2?1:-1)};wr.push(w);trk.append(w)});
+ function idx(){if(mob){var mid=trk.getBoundingClientRect().top+trk.clientHeight/2,b=0,bd=1e9;wr.forEach(function(w,i){var r=w.getBoundingClientRect(),d=Math.abs(r.top+r.height/2-mid);if(d<bd){bd=d;b=i}});return b}return Math.round(trk.scrollLeft/Math.max(1,trk.clientWidth))}
+ var tk=0;trk.addEventListener('scroll',function(){if(tk)return;tk=requestAnimationFrame(function(){tk=0;var i=idx();if(i!==cur){cur=i;upd()}})},{passive:true});
+ function close(){document.removeEventListener('keydown',kd,true);document.body.style.overflow=bo;try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}ov.remove();PS.i=cur;prender(true)}
+ function kd(e){var k=e.key;if(k==='Escape'){close();return}
+  if(k==='ArrowRight'||k==='ArrowDown'||k==='PageDown'||k===' '){go(1);e.preventDefault()}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){go(-1);e.preventDefault()}}
+ ov.append(trk,cn,E('button',{class:'vx',text:'✕',onclick:close}));
+ if(!mob)ov.append(E('button',{class:'vn l',text:'‹',onclick:function(){go(-1)}}),E('button',{class:'vn r',text:'›',onclick:function(){go(1)}}));
+ document.body.style.overflow='hidden';document.body.append(ov);document.addEventListener('keydown',kd,true);
+ if(window.IntersectionObserver){var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting)paint(wr.indexOf(en.target))})},{root:trk,rootMargin:'100% 100% 100% 100%'});wr.forEach(function(w){io.observe(w)})}else wr.forEach(function(w,i){paint(i)});
+ paint(cur);upd();if(mob)wr[cur].scrollIntoView({block:'center'});else trk.scrollLeft=cur*trk.clientWidth;
+ if(!mob){var fs=ov.requestFullscreen||ov.webkitRequestFullscreen;if(fs)try{var pr=fs.call(ov);if(pr&&pr.catch)pr.catch(function(){})}catch(e){}
+  document.addEventListener('fullscreenchange',function fc(){if(!document.fullscreenElement){document.removeEventListener('fullscreenchange',fc);if($('#pfv'))close()}})}}
 /* ---------- ИИ-помощник презентации ---------- */
 async function pAI(ta,btn){
  var p=pcur();if(PS.busy)return;if(!ta.value.trim()){toast('Напишите, что нужно сделать');ta.focus();return}
  btn.disabled=true;var o=null,rm=showLd('Понимаю задачу…','Заполняю тему, автора и число слайдов');
  try{
-  var t=await ask('Ты помощник для создания презентации. Текущие данные: '+JSON.stringify({title:p.title,author:p.author,n:p.n,color:p.th,font:p.ff})+'. Просьба пользователя: '+ta.value+'. Ответь ТОЛЬКО JSON-объектом с ключами: title (тема презентации), author (имя и фамилия автора, если они указаны), n (число содержательных слайдов от 3 до 15), color (одно из: red, green, blue, bw, orange — только если просили цвет), font (одно из: Times New Roman, Arial, Calibri, Cambria, Georgia — только если просили шрифт). Без пояснений и без markdown.');
+  var t=await ask('Ты помощник для создания презентации. Текущие данные: '+JSON.stringify({title:p.title,author:p.author,n:p.n,color:p.th,font:p.ff,vol:p.vol,fmt:p.fmt})+'. Просьба пользователя: '+ta.value+'. Ответь ТОЛЬКО JSON-объектом с ключами: title (тема презентации), author (имя и фамилия автора, если они указаны), n (число содержательных слайдов от 3 до 15), color (одно из: red, green, blue, bw, orange — только если просили цвет), font (одно из: Times New Roman, Arial, Calibri, Cambria, Georgia — только если просили шрифт), vol (few, mid или many — только если просили объём текста: мало, средне, много), fmt (bul — пунктами или par — сплошной текст, только если это просили). Без пояснений и без markdown.');
   o=JSON.parse(t.replace(/```json|```/g,'').trim().replace(/^[^{]*/,'').replace(/[^}]*$/,''));
   if(o.title)p.title=String(o.title);if(o.author!=null&&String(o.author).trim())p.author=String(o.author);
   if(+o.n)p.n=Math.max(3,Math.min(15,Math.round(+o.n)));
-  if(o.color&&PTH[o.color])p.th=o.color;if(o.font&&FONTS.some(function(f){return f[0]===o.font}))p.ff=o.font;
+  if(o.color&&PTH[o.color])p.th=o.color;if(o.font&&FONTS.some(function(f){return f[0]===o.font}))p.ff=o.font;if(/^(few|mid|many)$/.test(o.vol))p.vol=o.vol;if(/^(bul|par)$/.test(o.fmt))p.fmt=o.fmt;
   if(!(p.title||'').trim())throw new Error('не понял тему');
   psave()
  }catch(e){o=null;toast('ИИ не понял задачу: '+((e&&e.message)||'попробуйте переформулировать'))}
@@ -872,7 +943,7 @@ function pEditor(){
  a.append(E('header',{class:'top'},[brand(),E('div',{class:'mono',text:'Презентация'})]));
  var bar=E('div',{class:'bar pbar'}),tabs=E('div',{class:'tabs'});
  [['e','Слайды'],['v','Просмотр']].forEach(function(t){tabs.append(E('button',{class:'tab','data-t':t[0],onclick:function(){pTab(t[0])},text:t[1]}))});bar.append(tabs);a.append(bar);
- var cols=E('div',{class:'cols'}),left=E('div',{class:'pane',id:'pe'}),right=E('div',{class:'pane pv',id:'pv'});
+ var cols=E('div',{class:'cols pcols'}),left=E('div',{class:'pane',id:'pe'}),right=E('div',{class:'pane pv',id:'pv'});
  /* карточка темы */
  var c1=E('div',{class:'card'});
  var ti=E('input',{type:'text',id:'pti',value:p.title,placeholder:'Например: Жизнь океана',oninput:function(){p.title=ti.value;pLater()},onkeydown:function(e){if(e.key==='Enter')pGen()}});
@@ -891,26 +962,31 @@ function pEditor(){
  c3.append(E('div',{class:'lab',style:'margin:0 0 6px',text:'Шрифт'}));
  FONTS.forEach(function(F){fr.append(E('button',{type:'button',class:'opt'+((p.ff||'Arial')===F[0]?' on':''),'data-f':F[0],onclick:function(){p.ff=F[0];psave();[].forEach.call(fr.children,function(b){b.classList.toggle('on',b.dataset.f===F[0])});prender(true)}},[E('b',{text:F[0],style:'font-family:'+F[1]}),E('span',{text:F[2]})]))});
  c3.append(fr);
+ var c4=E('div',{class:'card'});
+ function prow(lab,items,get,set){var r=E('div',{class:'nrow',style:'flex-wrap:wrap'});items.forEach(function(it){r.append(E('button',{type:'button',class:'btn sm'+(get()===it[0]?' red':''),text:it[1],'data-v':it[0],onclick:function(){set(it[0]);psave();[].forEach.call(r.children,function(b){b.classList.toggle('red',b.dataset.v===it[0])})}}))});c4.append(E('label',{class:'l',text:lab}),r)}
+ c4.append(E('div',{class:'lab',style:'margin:0 0 2px',text:'Стиль текста'}));
+ prow('Сколько текста',[['few','Мало'],['mid','Средне'],['many','Много']],function(){return p.vol||'mid'},function(v){p.vol=v});
+ prow('Как писать',[['bul','Пунктами'],['par','Сплошной текст']],function(){return p.fmt||'bul'},function(v){p.fmt=v});
  var c0=E('div',{class:'card'}),at=E('textarea',{style:'min-height:90px',placeholder:'Скажите ИИ, что сделать. Например: Тема «Всё о бабочках», 8 слайдов, автор Иван Петров, зелёный цвет'});
  c0.append(E('div',{class:'lab',style:'margin:0 0 8px',text:'ИИ-помощник'}),E('div',{class:'hint',style:'font-size:.85rem;margin-bottom:8px',text:'Опишите тему, число слайдов и имя автора — ИИ сам напишет текст, подберёт фото и создаст все слайды.'}),at);
  var ab=E('button',{class:'btn red',style:'margin-top:8px;width:100%',text:'Выполнить',onclick:function(){pAI(at,ab)}});c0.append(ab);
- left.append(c0,c1,c2,c3,E('div',{class:'lab',text:'Слайды'}),E('div',{id:'plist'}));
+ left.append(c4,c0,c1,c2,c3,E('div',{class:'lab',text:'Слайды'}),E('div',{id:'plist'}));
  /* просмотр */
  var cv=E('canvas',{id:'pcv',width:1920,height:1080});
  cv.onclick=function(e){var r=cv.getBoundingClientRect();pGo(e.clientX-r.left>r.width/2?1:-1)};
  var tx=0;cv.addEventListener('touchstart',function(e){tx=e.changedTouches[0].clientX},{passive:true});
  cv.addEventListener('touchend',function(e){var d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>40){pGo(d<0?1:-1);cv.dataset.sw=1;setTimeout(function(){delete cv.dataset.sw},350)}},{passive:true});
- var ocl=cv.onclick;cv.onclick=function(e){if(cv.dataset.sw)return;ocl(e)};
+ var ocl=cv.onclick;cv.onclick=function(e){if(cv.dataset.sw)return;if(pMobile()){pView(PS.i);return}ocl(e)};
  right.append(E('div',{class:'lab',style:'margin-top:0',id:'pcnt'}),E('div',{id:'pfs'},[cv]),
   E('div',{class:'pnav'},[E('button',{class:'btn sm',text:'‹ Назад',onclick:function(){pGo(-1)}}),E('div',{class:'pcn',id:'pcn'}),E('button',{class:'btn sm',text:'Вперёд ›',onclick:function(){pGo(1)}}),
    E('button',{class:'btn sm dark',text:'На весь экран',onclick:pFull})]),E('div',{class:'pth',id:'pth'}));
  cols.append(left,right);a.append(cols);
  a.append(E('div',{class:'ready'},[E('button',{class:'btn back',onclick:function(){psave();pExit()},text:'← Назад'}),E('button',{class:'btn red',onclick:pExport,text:'Скачать PDF / PPTX'})]));
  pList();pTab(PS.tab)}
-function pFull(){var e=$('#pfs');(e.requestFullscreen||e.webkitRequestFullscreen||function(){toast('Полный экран не поддерживается')}).call(e)}
+function pFull(){pView(PS.i)}
 function pGo(d){var p=pcur();if(!p)return;PS.i=Math.max(0,Math.min(p.slides.length-1,PS.i+d));prender()}
 addEventListener('resize',function(){clearTimeout(PS._rz);PS._rz=setTimeout(function(){if(PS.id&&$('#pe'))pTab(PS.tab)},250)});
-document.addEventListener('keydown',function(e){if(!PS.id||!$('#pcv'))return;var t=e.target&&e.target.tagName;if(/INPUT|TEXTAREA|SELECT/.test(t))return;
+document.addEventListener('keydown',function(e){if(!PS.id||!$('#pcv')||$('#pfv'))return;var t=e.target&&e.target.tagName;if(/INPUT|TEXTAREA|SELECT/.test(t))return;
  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){pGo(1);e.preventDefault()}else if(e.key==='ArrowLeft'||e.key==='PageUp'){pGo(-1);e.preventDefault()}});
 function pList(){
  var p=pcur(),box=$('#plist');if(!box)return;box.innerHTML='';var n=p.slides.length;
@@ -925,6 +1001,9 @@ function pList(){
   if(s.k==='content'){var ti=E('input',{type:'text',value:s.t||'',placeholder:'Заголовок слайда',oninput:function(){s.t=ti.value;pLater()}});card.append(ti)}
   else if(s.k==='end'){var te=E('input',{type:'text',value:s.t||'',placeholder:'Спасибо за внимание',oninput:function(){s.t=te.value;pLater()}});card.append(te)}
   var ta=E('textarea',{style:'min-height:'+(s.k==='content'?100:60)+'px;margin-top:8px',placeholder:s.k==='content'?'Каждая строка — отдельный пункт':'Подзаголовок',oninput:function(){s.b=ta.value.split('\n');pLater()}});ta.value=(s.b||[]).join('\n');card.append(ta);
+  if(s.k==='content'){var mr=E('div',{class:'pim'}),tag=E('span',{class:'wtag'}),mb={};
+   [['bul','Пунктами'],['par','Сплошной текст']].forEach(function(m){mb[m[0]]=E('button',{type:'button',class:'btn sm'+((s.mode||'bul')===m[0]?' red':''),text:m[1],onclick:function(){pRewrite(p,s,m[0],ta,function(b){[].forEach.call(mr.querySelectorAll('button'),function(x){x.disabled=b});tag.textContent=b?'Пишу новый текст':''},mb)}})});
+   mr.append(E('span',{style:'font-size:.8rem;font-weight:700;color:var(--soft)',text:'Вид текста:'}),mb.bul,mb.par,tag);card.append(mr)}
   var im=E('div',{class:'pim'}),fi=E('input',{type:'file',accept:'image/*',class:'hide',onchange:function(){var f=fi.files[0];if(!f)return;var r=new FileReader();r.onload=function(){pShrink(r.result).then(function(d){s.img=d;s.cr='';psave();pList();prender(true)}).catch(function(){toast('Не удалось открыть фото')})};r.readAsDataURL(f)}});
   if(s.img)im.append(E('img',{src:s.img,alt:''}));
   im.append(E('button',{class:'btn sm red',text:s.img?'Другое фото':'Найти фото',onclick:function(){pPick(i)}}),E('button',{class:'btn sm',text:'Своё фото',onclick:function(){fi.click()}}),fi);
@@ -978,9 +1057,9 @@ async function pPptx(p,fname){
    var G=pgeom(p,i,mx),s=G.s,g=G.g,L=G.L,T=G.T,sl=pp.addSlide(),im=s.img?await pload(s.img):null;
    var rect=function(x,y,w,h,col){sl.addShape(pp.ShapeType.rect,{x:R(x),y:R(y),w:R(w),h:R(h),fill:{color:c6(col)},line:{type:'none'}})};
    var circ=function(cx,cy,r,col){sl.addShape(pp.ShapeType.ellipse,{x:R(cx-r),y:R(cy-r),w:R(2*r),h:R(2*r),fill:{color:c6(col)},line:{type:'none'}})};
-   var txt=function(t,x,y,w,h,fs,col,o){sl.addText(t,Object.assign({x:R(x),y:R(y),w:R(w),h:R(h),fontFace:(p.ff||'Arial'),fontSize:fs/2,color:c6(col),margin:0,valign:'top',wrap:true,fit:'none'},o||{}))};
+   var star=function(d){sl.addShape(pp.ShapeType.star4,{x:R(d[0]-d[2]),y:R(d[1]-d[2]),w:R(2*d[2]),h:R(2*d[2]),fill:{color:c6(d[3])},line:{type:'none'}})};var txt=function(t,x,y,w,h,fs,col,o){sl.addText(t,Object.assign({x:R(x),y:R(y),w:R(w),h:R(h),fontFace:(p.ff||'Arial'),fontSize:fs/2,color:c6(col),margin:0,valign:'top',wrap:true,fit:'none'},o||{}))};
    if(G.cover){
-    sl.background={color:c6(T.a)};circ(260,1040,460,pmix('#ffffff',T.a,.07));circ(1560,60,320,pmix('#ffffff',T.a,.07));
+    sl.background={color:c6(T.a)};circ(260,1040,460,pmix('#ffffff',T.a,.07));circ(1560,60,320,pmix('#ffffff',T.a,.07));pdeco(G).b.forEach(star);
     if(im){rect(g.ix+26,g.iy+26,g.iw,g.ih,pmix('#ffffff',T.a,.22));sl.addImage({data:pCrop(im,g.iw,g.ih),x:R(g.ix),y:R(g.iy),w:R(g.iw),h:R(g.ih)});if(s.cr)txt('Фото: '+s.cr,g.ix,972,g.iw,28,18,pmix('#ffffff',T.a,.7))}
     rect(110,120,80,8,pmix('#ffffff',T.a,.9));txt(s.k==='cover'?'ПРЕЗЕНТАЦИЯ':'ЗАВЕРШЕНИЕ',210,104,700,34,24,pmix('#ffffff',T.a,.75),{bold:true});
     txt(L.title,g.tx,L.ty,g.tw+30,L.th+10,L.tfs,'#ffffff',{bold:true,lineSpacing:L.lh/2});
@@ -991,9 +1070,9 @@ async function pPptx(p,fname){
     if(!im)txt(ppad(i),900,100,960,560,520,pmix(T.a,T.bg,.07),{bold:true,align:'right'});
     txt((p.title||'').toUpperCase().slice(0,60),96,58,900,30,22,T.mu,{bold:true});txt(ppad(i+1)+' / '+ppad(n),1424,58,400,30,22,T.mu,{bold:true,align:'right'});
     if(im){rect(g.ix+24,g.iy+24,g.iw,g.ih,T.a);sl.addImage({data:pCrop(im,g.iw,g.ih),x:R(g.ix),y:R(g.iy),w:R(g.iw),h:R(g.ih)});if(s.cr)txt('Фото: '+s.cr,g.ix,972,g.iw,28,18,T.mu)}
-    txt(L.title,g.tx,L.ty,g.tw+30,L.th+10,L.tfs,T.ink,{bold:true,lineSpacing:L.lh/2});rect(g.tx,L.by,120,10,T.a);
+    pdeco(G).f.forEach(star);txt(L.title,g.tx,L.ty,g.tw+30,L.th+10,L.tfs,T.ink,{bold:true,lineSpacing:L.lh/2});rect(g.tx,L.by,120,10,T.a);
     var y=L.y0,mk=Math.round(L.bfs*.38);
-    L.it.forEach(function(lines,bi){var hh=lines.length*L.blh;rect(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);txt(L.raw[bi],g.tx+56,y,g.tw-26,hh+6,L.bfs,T.ink,{lineSpacing:L.blh/2});y+=hh+L.gp})
+    L.it.forEach(function(lines,bi){var hh=lines.length*L.blh;if(!L.par)rect(g.tx,y+Math.round((L.blh-mk)/2),mk,mk,T.a);txt(L.raw[bi],g.tx+(L.par?0:56),y,g.tw+(L.par?30:-26),hh+6,L.bfs,T.ink,{lineSpacing:L.blh/2});y+=hh+L.gp})
    }}
   var blob=await pp.write({outputType:'blob'});
   await saveBlob(blob,pName(p,fname)+'.pptx')
